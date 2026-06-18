@@ -1,27 +1,123 @@
-// ============================================================
-// LIQUID GLASS LIBRARY (v4 - TypeScript Edition)
-// ============================================================
+/**
+ * ============================================================
+ * LIQUID GLASS LIBRARY (v4 - TypeScript Edition)
+ * ============================================================
+ * 
+ * A high-performance glass morphism (glassmorphism) effect library that uses SVG filters
+ * to create realistic refractive glass surfaces with physics-based animations.
+ * 
+ * Features:
+ * - Real-time refraction and displacement mapping using SVG filters
+ * - Physics-based spring animations for smooth pointer following
+ * - Responsive design with resize observer support
+ * - GPU-accelerated 3D transforms and backdrop filters
+ * - Mobile device orientation support for gyroscope-based interactions
+ * - Reduced motion preference detection for accessibility
+ * - Optional ripple effect with customizable appearance
+ * - CSS variable configuration for runtime customization
+ * - Filter caching for improved performance with multiple elements
+ * 
+ * @example
+ * // Initialize with default settings
+ * LiquidGlass.init('.glass-effect');
+ * 
+ * // Initialize with custom options
+ * LiquidGlass.init('.glass-effect', {
+ *   refractiveIndex: 1.8,
+ *   glassThickness: 150,
+ *   maxTilt: 10
+ * });
+ * 
+ * // Add a ripple effect on click
+ * element.addEventListener('click', (e) => {
+ *   LiquidGlass.addRipple(element, e);
+ * });
+ */
 
+/**
+ * Configuration options for LiquidGlass surfaces
+ * 
+ * All properties are optional and will fall back to sensible defaults or CSS variables.
+ */
 export interface LiquidGlassOptions {
+    /** Refractive index of the glass material (affects refraction intensity). Default: 1.6 */
     refractiveIndex?: number;
+    
+    /** Virtual glass thickness in pixels (affects displacement map). Default: 120 */
     glassThickness?: number;
+    
+    /** Width of the glass bezel/border in pixels. Default: 28 */
     bezelWidth?: number;
+    
+    /** Global scale multiplier for refraction intensity. Default: 1.2 */
     refractionScale?: number;
+    
+    /** Alpha (opacity) value for the specular highlight (0-1). Default: 0.75 */
     specularAlpha?: number;
+    
+    /** Maximum tilt angle in degrees when tilting based on pointer. Default: 7 */
     maxTilt?: number;
+    
+    /** Respect system prefers-reduced-motion setting. Default: false */
     reducedMotion?: boolean;
+    
+    /** Enable the ambient orb effect following the pointer. Default: true */
     enableOrb?: boolean;
+    
+    /** Color of the orb as an rgba() string. Default: 'rgba(120,130,255,.13)' */
     orbColor?: string;
+    
+    /** Enable mobile device orientation (gyroscope) support. Default: true */
     enableMobileSupport?: boolean;
 }
 
+/**
+ * Internal result of a built/cached glass filter
+ * Used to track SVG filter elements and their properties
+ */
 interface FilterCacheResult {
+    /** Unique ID of the SVG filter element */
     id: string;
+    
+    /** Maximum displacement magnitude from the displacement map */
     maxDisp: number;
+    
+    /** Reference to the feDisplacementMap element for runtime scale updates */
     mapEl: SVGFEDisplacementMapElement | null;
+    
+    /** Reference to the SVG element containing the filter definition */
     svg: SVGSVGElement;
 }
 
+export interface RippleOptions {
+    /** The color of the ripple gradient. */
+    color?: string;
+    /** How large the ripple grows relative to the element's size. Default: 4 */
+    sizeMultiplier?: number;
+    /** Animation duration in milliseconds. Default: 4000 */
+    durationMs?: number;
+    /** CSS easing function. Default: 'cubic-bezier(.16,1,.3,1)' */
+    easing?: string;
+    /** Starting opacity of the ripple. Default: 1 */
+    startOpacity?: number;
+    /** Ending opacity of the ripple. Default: 0 */
+    endOpacity?: number;
+}
+
+/**
+ * Physics-based spring animation utility
+ * 
+ * Implements a damped spring oscillator that smoothly animates toward a target value.
+ * Used for all tilt, shadow, and refraction animations to create natural, fluid motion.
+ * 
+ * @example
+ * const spring = new Spring(0, 300, 20); // value=0, stiffness=300, damping=20
+ * spring.setTarget(10); // animate toward 10
+ * let value = spring.update(0.016); // update with 16ms delta
+ * while (!spring.isSettled()) {
+ *   value = spring.update(0.016);
+ * }
+ */
 class Spring {
     private value: number;
     private target: number;
@@ -29,6 +125,12 @@ class Spring {
     private readonly stiffness: number;
     private readonly damping: number;
 
+    /**
+     * Create a new spring animator
+     * @param v Initial value
+     * @param s Stiffness coefficient (higher = faster, less bouncy). Default: 300
+     * @param d Damping coefficient (higher = less oscillation). Default: 20
+     */
     constructor(v: number, s = 300, d = 20) {
         this.value = v;
         this.target = v;
@@ -36,90 +138,212 @@ class Spring {
         this.stiffness = s;
         this.damping = d;
     }
-    setTarget(t: number) { this.target = t; }
-    update(dt: number) {
-        const f = (this.target - this.value) * this.stiffness;
-        const dmp = this.velocity * this.damping;
+
+    /**
+     * Set the target value to animate toward
+     * @param t New target value
+     */
+    setTarget(t: number):void { this.target = t; }
+
+    public getTarget(): number { return this.target; }
+    public getValue(): number { return this.value; }
+    /**
+     * Update the spring for a time step
+     * @param dt Delta time in seconds (typically 0.016 for 60fps)
+     * @return Current value after this frame
+     */
+    update(dt: number):number {
+        const f: number = (this.target - this.value) * this.stiffness;
+        const dmp: number = this.velocity * this.damping;
         this.velocity += (f - dmp) * dt;
         this.value += this.velocity * dt;
         return this.value;
     }
-    isSettled() {
+
+    /**
+     * Check if the spring has essentially stopped oscillating
+     * @return True if value and velocity are both very close to 0
+     */
+    isSettled(): boolean {
         return Math.abs(this.target - this.value) < 0.001 && Math.abs(this.velocity) < 0.001;
     }
 }
 
-// Math & Optics Utilities
-const utils = {
-    clamp: (v: number, lo: number, hi: number) => Math.min(Math.max(v, lo), hi),
-    surfaceProfile: (x: number) => Math.pow(1 - Math.pow(1 - x, 4), 0.25),
+/**
+ * Mathematical and optical utility functions
+ * 
+ * Contains calculations for:
+ * - Physics-based glass refraction using Snell's law
+ * - 2D displacement maps for realistic glass edges
+ * - Specular (shininess) highlights for glass reflection
+ * - Image processing for mask-based effects
+ * - CSS variable parsing and image loading
+ * 
+ * These utilities handle all the optics calculations needed for the glass effect.
+ */
+class MathUtils  {
+    /**
+     * Clamp a value between min and max bounds
+     * @param v Value to clamp
+     * @param lo Lower bound (inclusive)
+     * @param hi Upper bound (inclusive)
+     * @return Clamped value
+     */
+    public static clamp (v: number, lo: number, hi: number):number{
+        return Math.min(Math.max(v, lo), hi);
+    }
 
-    getCssVar: (el: HTMLElement, prop: string, fallback: number | boolean): any => {
+    /**
+     * Calculate a smooth surface profile curve
+     * Used to shape the glass curvature from flat edges to rounded corners.
+     * @param x Input from 0 to 1
+     * @return Smoothly curved value from 0 to 1
+     */
+    public static surfaceProfile (x: number): number {
+        return Math.pow(1 - Math.pow(1 - x, 4), 0.25);
+    }
+
+    /**
+     * Retrieve a CSS custom property (--variable) value from an element
+     * @param el Element to get the property from
+     * @param prop CSS property name (e.g., '--lg-max-tilt')
+     * @param fallback Default value if property not found or invalid
+     * @return Parsed number value or fallback
+     */
+    public static getCssVar(el: HTMLElement, prop: string, fallback: number | boolean): any {
         const val = getComputedStyle(el).getPropertyValue(prop).trim();
         return val !== '' ? parseFloat(val) : fallback;
-    },
+    }
 
-    loadImage: (src: string): Promise<HTMLImageElement> => new Promise((resolve, reject) => {
-        const img = new Image();
-        if (src.startsWith('http')) img.crossOrigin = "Anonymous";
-        img.onload = () => resolve(img);
-        img.onerror = reject;
-        img.src = src;
-    }),
-
-    calculateDisplacementFromAlpha: (maskImg: HTMLImageElement, W: number, H: number, _bw: number, maxD: number) => {
-        const canvas = document.createElement('canvas');
-        canvas.width = W;
-        canvas.height = H;
-        const ctx = canvas.getContext('2d', { willReadFrequently: true });
-        if (!ctx) return new ImageData(W, H);
-
-        ctx.drawImage(maskImg, 0, 0, W, H);
-        const srcData = ctx.getImageData(0, 0, W, H).data;
-        const outImg = new ImageData(W, H);
-        const outData = outImg.data;
-
-        for (let i = 0; i < outData.length; i += 4) {
-            outData[i] = outData[i + 1] = 128;
-            outData[i + 3] = 255;
+    /**
+     * Intelligently parses border-radius to handle px, %, and massive capsule radii
+     * ensuring math doesn't break for circles and pills.
+     * @param el Element with border-radius style
+     * @param width Element width in pixels
+     * @param height Element height in pixels
+     * @return Effective radius in pixels
+     */
+    public static parseRadius(el: HTMLElement, width: number, height: number): number {
+        const raw = getComputedStyle(el).borderRadius;
+        let r = parseInt(raw) || 26;
+        if (raw.includes('%')) {
+            r = (r / 100) * Math.min(width, height);
         }
+        return Math.min(r, Math.min(width, height) / 2);
+    }
 
-        for (let y = 1; y < H - 1; y++) {
-            for (let x = 1; x < W - 1; x++) {
-                const idx = (y * W + x) * 4;
-                const alpha = srcData[idx + 3];
+    /**
+     * Load an image with CORS support for cross-origin images
+     * @param src Image URL (http/https URLs get CORS enabled)
+     * @return Promise resolving to the loaded HTMLImageElement
+     */
+    public static loadImage (src: string): Promise<HTMLImageElement> {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            if (src.startsWith('http')) img.crossOrigin = "Anonymous";
+            img.onload = () => resolve(img);
+            img.onerror = reject;
+            img.src = src;
+        })
+    }
 
-                if (alpha > 0) {
-                    const aTop = srcData[((y - 1) * W + x) * 4 + 3] || 0;
-                    const aBot = srcData[((y + 1) * W + x) * 4 + 3] || 0;
-                    const aLef = srcData[(y * W + (x - 1)) * 4 + 3] || 0;
-                    const aRig = srcData[(y * W + (x + 1)) * 4 + 3] || 0;
+    /**
+     * Calculate displacement map from a mask image's alpha channel
+     * 
+     * Extracts normal vectors from alpha gradients to create a displacement map.
+     * This allows custom mask shapes (via data-lg-mask attribute) to control
+     * where the glass effect is applied and how it distorts.
+     * 
+     * @param maskImg Loaded mask image
+     * @param W Canvas width
+     * @param H Canvas height
+     * @param _bw Bezel width (for context)
+     * @param maxD Maximum displacement magnitude for scaling
+     * @return ImageData containing normalized displacement vectors (R=X, G=Y)
+     */
+    public static calculateDisplacementFromAlpha (maskImg: HTMLImageElement, W: number, H: number, _bw: number, maxD: number):ImageData
+        {
+            const canvas = document.createElement('canvas');
+            canvas.width = W;
+            canvas.height = H;
+            const ctx = canvas.getContext('2d', {willReadFrequently: true});
+            if (!ctx) return new ImageData(W, H);
 
-                    const dX = (aLef - aRig) / 255;
-                    const dY = (aTop - aBot) / 255;
+            // Draw the mask and extract pixel data
+            ctx.drawImage(maskImg, 0, 0, W, H);
+            const srcData = ctx.getImageData(0, 0, W, H).data;
+            const outImg = new ImageData(W, H);
+            const outData = outImg.data;
 
-                    outData[idx] = Math.max(0, Math.min(255, 128 + dX * 127 * (maxD || 1)));
-                    outData[idx + 1] = Math.max(0, Math.min(255, 128 + dY * 127 * (maxD || 1)));
+            // Initialize with neutral displacement (128 = no offset)
+            for (let i = 0; i < outData.length; i += 4) {
+                outData[i] = outData[i + 1] = 128;
+                outData[i + 3] = 255;
+            }
+
+            // Calculate displacement from alpha gradients using Sobel-like edge detection
+            for (let y = 1; y < H - 1; y++) {
+                for (let x = 1; x < W - 1; x++) {
+                    const idx = (y * W + x) * 4;
+                    const alpha = srcData[idx + 3];
+
+                    if (alpha > 0) {
+                        // Sample neighbors
+                        const aTop = srcData[((y - 1) * W + x) * 4 + 3] || 0;
+                        const aBot = srcData[((y + 1) * W + x) * 4 + 3] || 0;
+                        const aLef = srcData[(y * W + (x - 1)) * 4 + 3] || 0;
+                        const aRig = srcData[(y * W + (x + 1)) * 4 + 3] || 0;
+
+                        // Compute gradients (normalized -1 to 1)
+                        const dX = (aLef - aRig) / 255;
+                        const dY = (aTop - aBot) / 255;
+
+                        // Encode as normalized displacement (127 = -1, 128 = 0, 255 = +1)
+                        outData[idx] = Math.max(0, Math.min(255, 128 + dX * 127 * (maxD || 1)));
+                        outData[idx + 1] = Math.max(0, Math.min(255, 128 + dY * 127 * (maxD || 1)));
+                    }
                 }
             }
+            return outImg;
         }
-        return outImg;
-    },
 
-    calculateDisplacementMap1D: (gt: number, bw: number, shapeFn: (arg0: number) => number, ri: number, samples = 128) => {
-        const eta = 1 / ri;
+    /**
+     * Calculate 1D refraction profile using Snell's law
+     * 
+     * Computes how much light refracts at each point along the glass surface,
+     * accounting for surface curvature, glass thickness, and refractive index.
+     * Results are used to create the 2D displacement map.
+     * 
+     * @param gt Glass thickness at peak
+     * @param bw Bezel (edge transition) width
+     * @param shapeFn Function defining surface profile (0->1)
+     * @param ri Refractive index of glass
+     * @param samples Number of sample points. Default: 128
+     * @return Array of displacement values for each sample
+     */
+    public static calculateDisplacementMap1D (gt: number, bw: number, shapeFn: (arg0: number) => number, ri: number, samples = 128) {
+        const eta = 1 / ri; // relative refractive index
         const result: number[] = [];
+        
         for (let i = 0; i < samples; i++) {
             const x = i / samples;
             const y = shapeFn(x);
+            
+            // Approximate surface normal via finite differences
             const dx = 0.0001;
             const dy = (shapeFn(Math.min(1, x + dx)) - shapeFn(Math.max(0, x - dx))) / (2 * dx);
             const mag = Math.sqrt(dy * dy + 1);
-            const nx = -dy / mag, ny = -1 / mag;
+            const nx = -dy / mag, ny = -1 / mag; // surface normal
+            
+            // Apply Snell's law: n1 * sin(i) = n2 * sin(t)
             const cosI = ny;
             const k = 1 - eta * eta * (1 - cosI * cosI);
-            if (k < 0) result.push(0);
-            else {
+            
+            if (k < 0) {
+                // Total internal reflection: no refraction
+                result.push(0);
+            } else {
+                // Calculate refracted ray direction and displacement
                 const sqrtk = Math.sqrt(k);
                 const rf0 = -(eta * cosI + sqrtk) * nx;
                 const rf1 = eta - (eta * cosI + sqrtk) * ny;
@@ -127,36 +351,67 @@ const utils = {
             }
         }
         return result;
-    },
+    }
 
-    calculateDisplacementMap2D: (cW: number, cH: number, oW: number, oH: number, rad: number, bw: number, maxD: number, profile: number[]) => {
+    /**
+     * Calculate 2D displacement map for a rounded rectangle glass effect
+     * 
+     * Creates a displacement map showing how much each pixel refracts,
+     * accounting for the glass shape, curvature, and thickness profile.
+     * Used as the primary displacement map for the SVG filter.
+     * 
+     * @param cW Canvas/output width
+     * @param cH Canvas/output height
+     * @param oW Object (glass) width
+     * @param oH Object (glass) height
+     * @param rad Border radius (corner curvature)
+     * @param bw Bezel width (edge transition zone)
+     * @param maxD Maximum displacement magnitude
+     * @param profile 1D displacement profile array
+     * @return ImageData with displacement vectors (R=X, G=Y, both normalized)
+     */
+    public static calculateDisplacementMap2D (cW: number, cH: number, oW: number, oH: number, rad: number, bw: number, maxD: number, profile: number[])  {
         const img = new ImageData(cW, cH);
         const data = img.data;
+        
+        // Initialize with neutral displacement
         for (let i = 0; i < data.length; i += 4) {
             data[i] = data[i + 1] = 128;
             data[i + 3] = 255;
         }
+        
+        // Precompute frequently used values
         const rSq = rad * rad, rp1Sq = (rad + 1) ** 2, rmBwSq = Math.max(0, rad - bw) ** 2;
         const wB = oW - rad * 2, hB = oH - rad * 2;
         const oX = (cW - oW) / 2, oY = (cH - oH) / 2;
         const safeMaxD = maxD || 1;
 
+        // Rasterize the glass shape
         for (let y1 = 0; y1 < oH; y1++) {
             for (let x1 = 0; x1 < oW; x1++) {
                 let cx = 0, cy = 0;
+                
+                // Distance from nearest corner (handles rounded corners)
                 if (x1 < rad) cx = x1 - rad;
                 else if (x1 >= oW - rad) cx = x1 - rad - wB;
                 if (y1 < rad) cy = y1 - rad;
                 else if (y1 >= oH - rad) cy = y1 - rad - hB;
 
                 const dSq = cx * cx + cy * cy;
+                
+                // Only process pixels in bezel zone (edge of glass)
                 if (dSq <= rp1Sq && dSq >= rmBwSq) {
                     const dist = Math.sqrt(dSq);
-                    const op = dSq < rSq ? 1 : 1 - (dist - rad) / (Math.sqrt(rp1Sq) - rad);
+                    const op = dSq < rSq ? 1 : 1 - (dist - rad) / (Math.sqrt(rp1Sq) - rad); // opacity
+                    
+                    // Sample the 1D profile to get displacement magnitude
                     const bIdx = Math.floor(Math.max(0, Math.min(1, (rad - dist) / bw)) * (profile.length - 1));
                     const dVal = profile[bIdx] || 0;
+                    
+                    // Convert displacement to X,Y components (pointing outward from edge)
                     const dX = (-(dist > 0 ? cx / dist : 0) * dVal) / safeMaxD;
                     const dY = (-(dist > 0 ? cy / dist : 0) * dVal) / safeMaxD;
+                    
                     const idx = ((oY + y1) * cW + oX + x1) * 4;
                     data[idx] = Math.max(0, Math.min(255, 128 + dX * 127 * op));
                     data[idx + 1] = Math.max(0, Math.min(255, 128 + dY * 127 * op));
@@ -164,30 +419,48 @@ const utils = {
             }
         }
         return img;
-    },
+    }
 
-    calculateSpecularHighlight: (oW: number, oH: number, rad: number) => {
+    /**
+     * Calculate specular (shine) highlight for glass reflection
+     * 
+     * Creates a bright spot simulating light reflecting off the glass surface.
+     * Positioned top-left with falloff toward bottom-right for a natural look.
+     * 
+     * @param oW Object width
+     * @param oH Object height
+     * @param rad Border radius
+     * @return ImageData with specular intensity (R=G=B=intensity, A=alpha)
+     */
+    public static calculateSpecularHighlight (oW: number, oH: number, rad: number)  {
         const img = new ImageData(oW, oH);
         const data = img.data;
-        const light = [Math.cos(Math.PI / 3), Math.sin(Math.PI / 3)];
+        const light = [Math.cos(Math.PI / 3), Math.sin(Math.PI / 3)]; // light direction
         const rSq = rad * rad, rp1Sq = (rad + 1) ** 2, rmSSq = Math.max(0, (rad - 1.5) ** 2);
 
         for (let y1 = 0; y1 < oH; y1++) {
             for (let x1 = 0; x1 < oW; x1++) {
                 let cx = 0, cy = 0;
+                
+                // Distance from nearest corner
                 if (x1 < rad) cx = x1 - rad;
                 else if (x1 >= oW - rad) cx = x1 - rad - (oW - rad * 2);
                 if (y1 < rad) cy = y1 - rad;
                 else if (y1 >= oH - rad) cy = y1 - rad - (oH - rad * 2);
 
                 const dSq = cx * cx + cy * cy;
+                
+                // Process only pixels near the edge
                 if (dSq <= rp1Sq && dSq >= rmSSq) {
                     const dist = Math.sqrt(dSq);
                     const op = dSq < rSq ? 1 : 1 - (dist - rad) / (Math.sqrt(rp1Sq) - rad);
+                    
+                    // Dot product with light direction
                     const dp = Math.abs((dist > 0 ? cx / dist : 0) * light[0] + (dist > 0 ? -cy / dist : 0) * light[1]);
                     const ef = Math.max(0, Math.min(1, (rad - dist) / 1.5));
                     const cf = dp * Math.sqrt(1 - (1 - ef) ** 2);
                     const c = Math.min(255, 255 * cf);
+                    
                     const idx = (y1 * oW + x1) * 4;
                     data[idx] = data[idx + 1] = data[idx + 2] = c;
                     data[idx + 3] = Math.min(255, c * cf * op);
@@ -195,9 +468,15 @@ const utils = {
             }
         }
         return img;
-    },
+    }
 
-    imageDataToObjectURL: (d: ImageData): Promise<string> => {
+    /**
+     * Convert ImageData to a data URL (blob URL)
+     * Useful for embedding canvas images in SVG filters
+     * @param d ImageData to convert
+     * @return Promise resolving to an object URL (blob:// path)
+     */
+    public static imageDataToObjectURL (d: ImageData): Promise<string>  {
         return new Promise(resolve => {
             const c = document.createElement("canvas");
             c.width = d.width;
@@ -206,10 +485,27 @@ const utils = {
             c.toBlob(blob => resolve(URL.createObjectURL(blob as Blob)), "image/png");
         });
     }
-};
+}
 
 let _filterId = 0;
 
+/**
+ * Build an SVG filter for the glass effect
+ * 
+ * Asynchronously creates a complete SVG filter with:
+ * 1. Gaussian blur for soft input
+ * 2. Displacement map using precomputed refraction data
+ * 3. Color saturation boost for glass vibrancy
+ * 4. Specular highlight for shine
+ * 5. Screen blend for final composition
+ * 
+ * Results are cached to avoid rebuilding identical filters.
+ * 
+ * @param el The element to build a filter for
+ * @param opts Required configuration options
+ * @param cacheMap Filter cache to check/store in
+ * @return Promise resolving to the filter result with SVG and metadata
+ */
 async function buildGlassFilterAsync(
     el: HTMLElement,
     opts: Required<Omit<LiquidGlassOptions, 'enableOrb' | 'orbColor' | 'enableMobileSupport'>>,
@@ -221,55 +517,71 @@ async function buildGlassFilterAsync(
     const R = parseInt(getComputedStyle(el).borderRadius) || 26;
     const maskUrl = el.getAttribute('data-lg-mask');
 
+    // Create cache key from element dimensions and properties
     const cacheKey = `${W}_${H}_${R}_${opts.refractiveIndex}_${opts.glassThickness}_${maskUrl || 'rect'}`;
 
+    // Return cached filter if available
     if (cacheMap.has(cacheKey)) return cacheMap.get(cacheKey)!;
 
     const id = `lq-filter-${++_filterId}`;
     const mapId = `${id}-map`;
 
-    const profile = utils.calculateDisplacementMap1D(opts.glassThickness, opts.bezelWidth, utils.surfaceProfile, opts.refractiveIndex);
+    // Calculate the refraction profile for this glass configuration
+    const profile = MathUtils.calculateDisplacementMap1D(opts.glassThickness, opts.bezelWidth, MathUtils.surfaceProfile, opts.refractiveIndex);
     const maxDisp = Math.max(...profile.map(Math.abs)) || 1;
 
     let dispData: ImageData;
 
+    // Use custom mask if provided, otherwise use rounded rectangle shape
     if (maskUrl) {
-        const maskImg = await utils.loadImage(maskUrl);
+        const maskImg = await MathUtils.loadImage(maskUrl);
         maskImg.width = W;
         maskImg.height = H;
 
-        dispData = utils.calculateDisplacementFromAlpha(maskImg, W, H, opts.bezelWidth, maxDisp);
+        dispData = MathUtils.calculateDisplacementFromAlpha(maskImg, W, H, opts.bezelWidth, maxDisp);
 
+        // Apply mask to element
         el.style.maskImage = `url('${maskUrl}')`;
-        el.style.webkitMaskImage = `url('${maskUrl}')`;
+        el.style.setProperty('--webkitMaskImage',`url('${maskUrl}')`);
         el.style.maskSize = '100% 100%';
-        el.style.webkitMaskSize = '100% 100%';
+        el.style.setProperty('--webkitMaskSize', '100% 100%');
         el.style.maskRepeat = 'no-repeat';
-        el.style.webkitMaskRepeat = 'no-repeat';
+        el.style.setProperty('--webkitMaskRepeat', 'no-repeat');
     } else {
-        dispData = utils.calculateDisplacementMap2D(W, H, W, H, R, opts.bezelWidth, maxDisp, profile);
+        dispData = MathUtils.calculateDisplacementMap2D(W, H, W, H, R, opts.bezelWidth, maxDisp, profile);
     }
 
-    const specData = utils.calculateSpecularHighlight(W, H, R);
+    // Calculate specular (shine) highlight
+    const specData = MathUtils.calculateSpecularHighlight(W, H, R);
+    
+    // Convert both maps to data URLs in parallel
     const [dispURL, specURL] = await Promise.all([
-        utils.imageDataToObjectURL(dispData),
-        utils.imageDataToObjectURL(specData)
+        MathUtils.imageDataToObjectURL(dispData),
+        MathUtils.imageDataToObjectURL(specData)
     ]);
 
+    // Build SVG filter with all effects
     const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     svg.setAttribute("aria-hidden", "true");
     svg.style.cssText = "position:absolute;width:0;height:0;overflow:hidden;pointer-events:none;";
     svg.innerHTML = `
     <defs>
       <filter id="${id}" x="-20%" y="-20%" width="140%" height="140%" color-interpolation-filters="sRGB">
+        <!-- Soft blur for input smoothness -->
         <feGaussianBlur in="SourceGraphic" stdDeviation="0.6" result="blurred"/>
+        <!-- Load precomputed displacement map -->
         <feImage href="${dispURL}" x="0" y="0" width="${W}" height="${H}" result="disp_map" preserveAspectRatio="none"/>
+        <!-- Apply refraction displacement -->
         <feDisplacementMap id="${mapId}" in="blurred" in2="disp_map" scale="${maxDisp * opts.refractionScale}" xChannelSelector="R" yChannelSelector="G" result="displaced"/>
+        <!-- Boost color saturation for vibrant glass -->
         <feColorMatrix in="displaced" type="saturate" values="1.35" result="saturated"/>
+        <!-- Load specular highlight map -->
         <feImage href="${specURL}" x="0" y="0" width="${W}" height="${H}" result="specular" preserveAspectRatio="none"/>
+        <!-- Fade specular based on alpha option -->
         <feComponentTransfer in="specular" result="spec_faded">
           <feFuncA type="linear" slope="${opts.specularAlpha}"/>
         </feComponentTransfer>
+        <!-- Blend highlight onto displaced content using screen mode -->
         <feBlend in="spec_faded" in2="saturated" mode="screen"/>
       </filter>
     </defs>`;
@@ -281,11 +593,23 @@ async function buildGlassFilterAsync(
     return result;
 }
 
+/**
+ * A single glass surface instance
+ * 
+ * Manages all aspects of a glass effect on one DOM element:
+ * - Animation state (spring-based physics)
+ * - SVG filter attachment and updates
+ * - Resize observation and recomputation
+ * - 3D tilt transforms based on pointer position
+ * - Inner shine layer rendering
+ * 
+ * Each instance is cached in LiquidGlass.instances for lifecycle management.
+ */
 export class LiquidGlassSurface {
-    private el: HTMLElement;
-    private cacheMap: Map<string, FilterCacheResult>;
+    private readonly el: HTMLElement;
+    private readonly cacheMap: Map<string, FilterCacheResult>;
     private jsOptions: LiquidGlassOptions;
-    private _af: number | null;
+    private _af: number | null; // animation frame request ID
     private lastTime: number;
     private opts!: Required<Omit<LiquidGlassOptions, 'enableOrb' | 'orbColor' | 'enableMobileSupport'>>;
     private sp: {
@@ -296,12 +620,18 @@ export class LiquidGlassSurface {
         shadowA: Spring;
         refrScale: Spring;
     };
-    private _inner?: HTMLDivElement;
+    private _inner?: HTMLDivElement; // shine gradient overlay
     private _filter?: FilterCacheResult;
     private _resizeObserver?: ResizeObserver;
     private _lastW?: number;
     private _lastH?: number;
 
+    /**
+     * Create and initialize a glass surface on an element
+     * @param el DOM element to apply effect to
+     * @param jsOptions Configuration options (will be merged with CSS variables)
+     * @param cacheMap Shared filter cache
+     */
     constructor(el: HTMLElement, jsOptions: LiquidGlassOptions = {}, cacheMap: Map<string, FilterCacheResult>) {
         this.el = el;
         this.cacheMap = cacheMap;
@@ -311,6 +641,7 @@ export class LiquidGlassSurface {
 
         this.syncCssVariables();
 
+        // Scale animation speeds based on reduced-motion preference
         const motionScale = this.opts.reducedMotion ? 50 : 1;
         this.sp = {
             tiltX: new Spring(0, 280 / motionScale, 22),
@@ -325,18 +656,28 @@ export class LiquidGlassSurface {
         this._initAsync();
     }
 
+    /**
+     * Sync configuration from CSS variables and options
+     * 
+     * Reads CSS custom properties (--lg-*) first, falling back to JS options,
+     * then to built-in defaults. Allows runtime customization via CSS.
+     */
     syncCssVariables() {
         this.opts = {
-            refractiveIndex: utils.getCssVar(this.el, '--lg-refractive-index', this.jsOptions.refractiveIndex || 1.6),
-            glassThickness: utils.getCssVar(this.el, '--lg-glass-thickness', this.jsOptions.glassThickness || 120),
-            bezelWidth: utils.getCssVar(this.el, '--lg-bezel-width', this.jsOptions.bezelWidth || 28),
-            refractionScale: utils.getCssVar(this.el, '--lg-refraction-scale', this.jsOptions.refractionScale || 1.2),
-            specularAlpha: utils.getCssVar(this.el, '--lg-specular-alpha', this.jsOptions.specularAlpha || 0.75),
-            maxTilt: utils.getCssVar(this.el, '--lg-max-tilt', this.jsOptions.maxTilt || 7),
+            refractiveIndex: MathUtils.getCssVar(this.el, '--lg-refractive-index', this.jsOptions.refractiveIndex || 1.6),
+            glassThickness: MathUtils.getCssVar(this.el, '--lg-glass-thickness', this.jsOptions.glassThickness || 120),
+            bezelWidth: MathUtils.getCssVar(this.el, '--lg-bezel-width', this.jsOptions.bezelWidth || 28),
+            refractionScale: MathUtils.getCssVar(this.el, '--lg-refraction-scale', this.jsOptions.refractionScale || 1.2),
+            specularAlpha: MathUtils.getCssVar(this.el, '--lg-specular-alpha', this.jsOptions.specularAlpha || 0.75),
+            maxTilt: MathUtils.getCssVar(this.el, '--lg-max-tilt', this.jsOptions.maxTilt || 7),
             reducedMotion: this.jsOptions.reducedMotion ?? window.matchMedia('(prefers-reduced-motion: reduce)').matches
         };
     }
 
+    /**
+     * Async initialization: build filter and layer
+     * Called after constructor to allow async filter building
+     */
     async _initAsync() {
         this._filter = await buildGlassFilterAsync(this.el, this.opts, this.cacheMap);
         this._buildInner();
@@ -347,6 +688,10 @@ export class LiquidGlassSurface {
         this.el.style.setProperty('--lg-backdrop-filter', bf);
     }
 
+    /**
+     * Build the inner shine layer (gradient + shadow)
+     * Adds a decorative overlay that enhances the glass appearance
+     */
     private _buildInner() {
         if (this.el.querySelector('.liquid-glass-inner')) return;
         const d = document.createElement('div');
@@ -362,6 +707,9 @@ export class LiquidGlassSurface {
         this._inner = d;
     }
 
+    /**
+     * Set up resize observer to rebuild filter when element size changes
+     */
     private _setupResizeObserver() {
         this._resizeObserver = new ResizeObserver(entries => {
             for (let entry of entries) {
@@ -375,6 +723,10 @@ export class LiquidGlassSurface {
         this._resizeObserver.observe(this.el);
     }
 
+    /**
+     * Rebuild the filter when element is resized
+     * Regenerates displacement and specular maps for new dimensions
+     */
     async _rebuild() {
         this.syncCssVariables();
         this._filter = await buildGlassFilterAsync(this.el, this.opts, this.cacheMap);
@@ -383,9 +735,19 @@ export class LiquidGlassSurface {
         this.el.style.setProperty('--lg-backdrop-filter', bf);
     }
 
+    /**
+     * Aim the glass effect toward a point
+     * 
+     * Sets spring targets for 3D tilt, shadow, and refraction intensity.
+     * Normalized coordinates: (-1, -1) = top-left, (1, 1) = bottom-right
+     * 
+     * @param nx Normalized X position (-1 to 1)
+     * @param ny Normalized Y position (-1 to 1)
+     */
     aim(nx: number, ny: number) {
         this.syncCssVariables();
 
+        // Reduced motion mode: apply changes instantly
         if (this.opts.reducedMotion) {
             this.el.style.transform = `perspective(900px) rotateX(${ny * -this.opts.maxTilt}deg) rotateY(${nx * this.opts.maxTilt}deg)`;
             const sy = 12 + Math.abs(ny) * 14, sb = 18 + Math.abs(ny) * 22, sa = 0.18 + Math.abs(ny) * 0.14;
@@ -397,6 +759,7 @@ export class LiquidGlassSurface {
             return;
         }
 
+        // Set spring targets for smooth animation
         this.sp.tiltX.setTarget(ny * -this.opts.maxTilt);
         this.sp.tiltY.setTarget(nx * this.opts.maxTilt);
         this.sp.shadowY.setTarget(12 + Math.abs(ny) * 14);
@@ -406,6 +769,10 @@ export class LiquidGlassSurface {
         this._kick();
     }
 
+    /**
+     * Reset the glass effect to rest position
+     * Animate back to neutral tilt, default shadow, and normal refraction
+     */
     rest() {
         if (this.opts.reducedMotion) {
             this.el.style.transform = `perspective(900px) rotateX(0deg) rotateY(0deg)`;
@@ -425,28 +792,40 @@ export class LiquidGlassSurface {
         this._kick();
     }
 
+    /**
+     * Start animation loop if not already running
+     * Uses requestAnimationFrame for smooth 60fps updates
+     */
     private _kick() {
         if (!this._af && this._filter) {
             this._af = requestAnimationFrame(ts => this._loop(ts));
         }
     }
 
+    /**
+     * Animation frame loop: update all springs and apply to DOM
+     * Implements the main update-and-render cycle
+     */
     private _loop(ts?: number) {
         const now = ts || performance.now();
-        const dt = Math.min((now - this.lastTime) / 1000, 0.032);
+        const dt = Math.min((now - this.lastTime) / 1000, 0.032); // cap at 32ms
         this.lastTime = now;
 
+        // Update all spring animations
         const rx = this.sp.tiltX.update(dt), ry = this.sp.tiltY.update(dt);
         const sy = this.sp.shadowY.update(dt), sb = this.sp.shadowBlur.update(dt), sa = this.sp.shadowA.update(dt);
         const rs = this.sp.refrScale.update(dt);
 
+        // Apply 3D transforms
         this.el.style.transform = `perspective(900px) rotateX(${rx}deg) rotateY(${ry}deg)`;
         this.el.style.boxShadow = `0 ${sy}px ${sb}px rgba(0,0,0,${sa})`;
 
+        // Update refraction intensity dynamically
         if (this._filter?.mapEl) {
             this._filter.mapEl.setAttribute('scale', (this._filter.maxDisp * this.opts.refractionScale * rs).toString());
         }
 
+        // Continue loop if springs are still moving
         if (!Object.values(this.sp).every(s => s.isSettled())) {
             this._af = requestAnimationFrame(ts => this._loop(ts));
         } else {
@@ -454,6 +833,10 @@ export class LiquidGlassSurface {
         }
     }
 
+    /**
+     * Clean up and destroy this glass instance
+     * Cancels animations, removes DOM changes, disconnects observers
+     */
     destroy() {
         if (this._af) cancelAnimationFrame(this._af);
         if (this._resizeObserver) this._resizeObserver.disconnect();
@@ -465,6 +848,23 @@ export class LiquidGlassSurface {
     }
 }
 
+/**
+ * Main API for the Liquid Glass effect
+ * 
+ * Static factory and event manager for initializing and controlling glass effects.
+ * Handles:
+ * - Global instance management
+ * - Pointer event tracking (mouse/stylus follow)
+ * - Device orientation tracking (mobile gyroscope)
+ * - Ambient orb rendering
+ * - Ripple effect creation
+ * 
+ * Usage:
+ * ```
+ * LiquidGlass.init('.glass');  // Enable on all .glass elements
+ * LiquidGlass.addRipple(el, event);  // Add ripple on click
+ * ```
+ */
 export class LiquidGlass {
     static instances = new Map<HTMLElement, LiquidGlassSurface>();
     static filterCache = new Map<string, FilterCacheResult>();
@@ -474,10 +874,14 @@ export class LiquidGlass {
     static isTracking = false;
     static isMobileTracking = false;
 
-    static _lx = -9999;
-    static _ly = -9999;
-    static _raf: number | null = null;
+    static _lx = -9999; // last mouse X
+    static _ly = -9999; // last mouse Y
+    static _raf: number | null = null; // animation frame ID
 
+    /**
+     * Inject base CSS (animations, etc.) if not already present
+     * Called automatically by init()
+     */
     static injectBaseStyles() {
         if (document.getElementById('liquid-glass-base-styles')) return;
         const style = document.createElement('style');
@@ -485,12 +889,26 @@ export class LiquidGlass {
         style.textContent = `
       @keyframes liquid-glass-ripple-anim {
         from { transform: scale(0); opacity: 1; }
-        to { transform: scale(1); opacity: 0; }
+        /* slightly overscale so the ripple feels bigger */
+        to { transform: scale(1.2); opacity: 0; }
       }
     `;
         document.head.appendChild(style);
     }
 
+    /**
+     * Initialize glass effects on matching elements
+     * 
+     * @param selector CSS selector for elements to enhance
+     * @param options Configuration options (merged with CSS variables)
+     * 
+     * @example
+     * LiquidGlass.init('.glass-button', {
+     *   refractiveIndex: 1.8,
+     *   maxTilt: 12,
+     *   enableOrb: true
+     * });
+     */
     static init(selector: string, options: LiquidGlassOptions = {}) {
         this.injectBaseStyles();
         document.querySelectorAll<HTMLElement>(selector).forEach(el => {
@@ -503,17 +921,24 @@ export class LiquidGlass {
             this.createOrb(options.orbColor);
         }
 
+        // Set up pointer tracking only once globally
         if (!this.isTracking) {
             this.bindEvents();
             this.isTracking = true;
         }
 
+        // Set up mobile device orientation tracking (only once)
         if (options.enableMobileSupport !== false && !this.isMobileTracking) {
             this.enableMobileSupport();
             this.isMobileTracking = true;
         }
     }
 
+    /**
+     * Create the ambient orb element
+     * Follows the mouse cursor with a soft blur
+     * @param color RGBA color string. Default: 'rgba(120,130,255,.13)'
+     */
     static createOrb(color = 'rgba(120,130,255,.13)') {
         const o = document.createElement('div');
         o.setAttribute('aria-hidden', 'true');
@@ -528,16 +953,21 @@ export class LiquidGlass {
         this.orb = o;
     }
 
+    /**
+     * Bind global pointer move and leave events
+     * Updates all glass surfaces based on mouse position
+     */
     static bindEvents() {
         const updateSurfaces = () => {
             this.instances.forEach((surface, el) => {
                 const rect = el.getBoundingClientRect();
-                const M = 100;
+                const M = 100; // detection margin in pixels
                 const near = this._lx > rect.left - M && this._lx < rect.right + M && this._ly > rect.top - M && this._ly < rect.bottom + M;
 
                 if (near) {
-                    const nx = utils.clamp((this._lx - (rect.left + rect.width / 2)) / (rect.width / 2), -1, 1);
-                    const ny = utils.clamp((this._ly - (rect.top + rect.height / 2)) / (rect.height / 2), -1, 1);
+                    // Normalize coordinates to -1..1 range relative to element center
+                    const nx = MathUtils.clamp((this._lx - (rect.left + rect.width / 2)) / (rect.width / 2), -1, 1);
+                    const ny = MathUtils.clamp((this._ly - (rect.top + rect.height / 2)) / (rect.height / 2), -1, 1);
                     surface.aim(nx, ny);
                 } else {
                     surface.rest();
@@ -545,6 +975,7 @@ export class LiquidGlass {
             });
         };
 
+        // Track mouse movement (skip touch)
         document.addEventListener('pointermove', (e: PointerEvent) => {
             if (e.pointerType === 'touch') return;
             this._lx = e.clientX;
@@ -556,6 +987,7 @@ export class LiquidGlass {
                 this.orb.style.opacity = '1';
             }
 
+            // Throttle updates with requestAnimationFrame
             if (!this._raf) {
                 this._raf = requestAnimationFrame(() => {
                     this._raf = null;
@@ -564,17 +996,23 @@ export class LiquidGlass {
             }
         });
 
+        // Hide orb and rest surfaces when pointer leaves
         document.addEventListener('pointerleave', () => {
             if (this.orb) this.orb.style.opacity = '0';
             this.instances.forEach(s => s.rest());
         });
     }
 
+    /**
+     * Enable mobile device orientation support (gyroscope)
+     * Allows glass effect to respond to device tilt
+     */
     static enableMobileSupport() {
         window.addEventListener('deviceorientation', (e: DeviceOrientationEvent) => {
             if (!e.gamma || !e.beta) return;
-            const nx = utils.clamp(e.gamma / 45, -1, 1);
-            const ny = utils.clamp(e.beta / 45, -1, 1);
+            // Normalize gamma (-90..90) and beta (-180..180) to -1..1
+            const nx = MathUtils.clamp(e.gamma / 45, -1, 1);
+            const ny = MathUtils.clamp(e.beta / 45, -1, 1);
 
             if (!this._raf) {
                 this._raf = requestAnimationFrame(() => {
@@ -585,20 +1023,62 @@ export class LiquidGlass {
         });
     }
 
-    static addRipple(element: Element, event: MouseEvent | PointerEvent, color = 'rgba(255,255,255,.26)') {
-        const r = element.getBoundingClientRect();
-        const size = Math.max(r.width, r.height) * 2;
+    /**
+     * Add a ripple effect emanating from a click/tap point
+     *
+     * @param element Element to add ripple to
+     * @param event Mouse or pointer event with clientX/Y
+     * @param options
+     *
+     * @example
+     * element.addEventListener('click', (e) => {
+     *   LiquidGlass.addRipple(element, e, 'rgba(100,150,255,.5)');
+     * });
+     */
+    static addRipple(
+        element: HTMLElement,
+        event: MouseEvent | PointerEvent,
+        options: RippleOptions = {}
+    ): void {
+        // 1. Establish strict defaults
+        const color = options.color ?? 'rgba(255, 255, 255, 0.46)';
+        const sizeMultiplier = options.sizeMultiplier ?? 2;
+        const duration = options.durationMs ?? 1.2000;
+        const easing = options.easing ?? 'cubic-bezier(.16, 1, .3, 1)';
+        const startOp = options.startOpacity ?? 1;
+        const endOp = options.endOpacity ?? 0;
+
+        // 2. Calculate geometry
+        const rect = element.getBoundingClientRect();
+        const size = Math.max(rect.width, rect.height) * sizeMultiplier;
+
+        // 3. Construct DOM element
         const rip = document.createElement('span');
         Object.assign(rip.style, {
             position: 'absolute',
-            width: size + 'px', height: size + 'px', borderRadius: '50%',
-            left: (event.clientX - r.left - size / 2) + 'px',
-            top: (event.clientY - r.top - size / 2) + 'px',
-            background: color, transform: 'scale(0)',
-            animation: 'liquid-glass-ripple-anim .55s cubic-bezier(.16,1,.3,1) forwards',
-            pointerEvents: 'none'
+            width: `${size}px`,
+            height: `${size}px`,
+            borderRadius: '50%',
+            left: `${event.clientX - rect.left - size / 2}px`,
+            top: `${event.clientY - rect.top - size / 2}px`,
+            background: `radial-gradient(circle, ${color} 0%, transparent 50%)`,
+            pointerEvents: 'none',
+            zIndex: '0' // Ensure it sits behind text if the container is relative
         });
+
         element.appendChild(rip);
-        rip.addEventListener('animationend', () => rip.remove(), { once: true });
+
+        // 4. Execute dynamic Web Animation (No external CSS required)
+        const animation = rip.animate([
+            { transform: 'scale(0)', opacity: startOp },
+            { transform: 'scale(1)', opacity: endOp }
+        ], {
+            duration: duration,
+            easing: easing,
+            fill: 'forwards'
+        });
+
+        // 5. Memory cleanup
+        animation.onfinish = () => rip.remove();
     }
 }
