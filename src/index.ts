@@ -340,7 +340,6 @@ class MathUtils  {
      *
      * @param gt Glass thickness at peak
      * @param bw Bezel (edge transition) width
-     * @param shapeFn Function defining surface profile (0->1)
      * @param ri Refractive index of glass
      * @param samples Number of sample points. Default: 128
      * @return Array of displacement values for each sample
@@ -666,6 +665,8 @@ export class LiquidGlassSurface {
         tiltY: Spring;
         lightX: Spring;
         lightY: Spring;
+        contentX: Spring;
+        contentY: Spring;
         shadowY: Spring;
         shadowBlur: Spring;
         shadowA: Spring;
@@ -710,6 +711,8 @@ export class LiquidGlassSurface {
             transY: new Spring(0, 250 / motionScale, 24),
             lightX: new Spring(50, 300 / motionScale, 26),
             lightY: new Spring(-20, 300 / motionScale, 26),
+            contentX: new Spring(0, 300 / motionScale, 24),
+            contentY: new Spring(0, 300 / motionScale, 24),
             shadowY: new Spring(4, 380 / motionScale, 26),
             shadowBlur: new Spring(12, 380 / motionScale, 26),
             shadowA: new Spring(0.12, 200 / motionScale, 18),
@@ -839,6 +842,8 @@ export class LiquidGlassSurface {
         this.sp.tiltY.setTarget(nx * this.opts.maxTilt);
         this.sp.transX.setTarget(nx * this.opts.magneticPull);
         this.sp.transY.setTarget(ny * this.opts.magneticPull);
+        this.sp.contentX.setTarget(-nx * 5);
+        this.sp.contentY.setTarget(-ny * 5);
         this.sp.lightX.setTarget(50 + nx * 60)
         this.sp.lightY.setTarget(50 + ny * 60)
         this.sp.shadowY.setTarget(12 + Math.abs(ny) * 14);
@@ -870,6 +875,8 @@ export class LiquidGlassSurface {
         this.sp.transY.setTarget(0);
         this.sp.lightX.setTarget(50);
         this.sp.lightY.setTarget(-20);
+        this.sp.contentX.setTarget(0);
+        this.sp.contentY.setTarget(0);
         this.sp.shadowY.setTarget(4);
         this.sp.shadowBlur.setTarget(12);
         this.sp.shadowA.setTarget(0.12);
@@ -908,12 +915,16 @@ export class LiquidGlassSurface {
         const lx = this.sp.lightX.update(dt);
         const ly = this.sp.lightY.update(dt);
 
+        const cx = this.sp.contentX.update(dt);
+        const cy = this.sp.contentY.update(dt);
+
         this.el.style.transform = `perspective(900px) translate3d(${tx}px, ${ty}px, 0) rotateX(${rx}deg) rotateY(${ry}deg)`;
         this.el.style.boxShadow = `0 ${sy}px ${sb}px rgba(0,0,0,${sa})`;
 
         if (this._inner) {
             this._inner.style.setProperty('--lg-spot-x', `${lx}%`);
             this._inner.style.setProperty('--lg-spot-y', `${ly}%`);
+            this._inner.style.transform = `translate3d(${cx}px, ${cy}px, 0)`;
         }
         if (this._filter?.mapElG) {
             const baseScale = this._filter.maxDisp * this.opts.refractionScale * rs;

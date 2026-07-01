@@ -1,14 +1,15 @@
 {
-  "name": "LiquidGlassDemo",
-  "version": "1.0.0",
-  "description": "",
-  "main": "dist/index.js",
+  "name": "liquidglass",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
   "scripts": {
-    "build": "tsc"
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
   },
-  "dependencies": {},
   "devDependencies": {
-    "typescript": "^5.5.3"
-  },
-  "private": true
+    "typescript": "~6.0.2",
+    "vite": "^8.1.1"
+  }
 }
