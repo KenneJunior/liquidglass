@@ -17,7 +17,8 @@
             --lg-magnetic-pull:0;
         }
         body {
-            min-height: 100vh;
+            min-height: 150vh;
+            min-width: 300vh;
             display: flex;
             gap: 48px;
             align-items: center;
@@ -26,6 +27,7 @@
             background: #07090f url('../liquidglass/src/wallpaper.jpg') center/cover fixed;
         }
 
+        /* base styles shared by all glass cards */
         .my-glass-card {
             position: relative;
             width: 500px;
@@ -41,17 +43,32 @@
             transition: transform 0.1s ease-out;
             will-change: transform;
             overflow: hidden;
-
-
         }
-        .my-glass-card-1 {
+
+           .my-glass-card--circle {
+               position: relative;
+               width: 250px;
+               height: 250px;
+               max-width: 90vw;
+               background: rgba(255, 255, 255, 0.09);
+               border: 1px solid rgba(255, 255, 255, 0.22);
+               border-radius: 50%;
+               color: white;
+               font-family: sans-serif;
+               padding: 24px;
+               cursor: pointer;
+               transition: transform 0.1s ease-out;
+               will-change: transform;
+               overflow: hidden;
+        }
+        .my-glass-card--square {
             position: relative;
-            width: 500px;
-            height: 100px;
+            width: 250px;
+            height: 250px;
             max-width: 90vw;
             background: rgba(255, 255, 255, 0.09);
             border: 1px solid rgba(255, 255, 255, 0.22);
-            border-radius: 99999px;
+            border-radius: 5%;
             color: white;
             font-family: sans-serif;
             padding: 24px;
@@ -92,8 +109,11 @@
 <button class="my-glass-card">
     Standard Rect
 </button>
-<button class="my-glass-card-1">
-    Standard Rect
+<button class=" my-glass-card--circle">
+    Standard Circle
+</button>
+<button class="my-glass-card--square">
+    Square Rect
 </button>
 
 <div class="my-glass-card custom-blob"
@@ -103,14 +123,17 @@
 </div>
 
 <script type="module">
-    import { LiquidGlass } from './src/index.js';
+    import {LiquidGlass as liquidGlass, LiquidGlass} from './src/index.js';
 
     LiquidGlass.init('.my-glass-card', {
         enableOrb: false,
     });
-    LiquidGlass.init('.my-glass-card-1', {
+    LiquidGlass.init('.my-glass-card--circle', {
         enableOrb: false,
     });
+    liquidGlass.init('.my-glass-card--square', {
+        enableOrb: true,
+    })
 
     document.querySelectorAll('.my-glass-card').forEach(card => {
         card.addEventListener('click', (e) => {
