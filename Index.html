@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <title>Liquid Glass v4 — Usage</title>
@@ -7,18 +8,19 @@
         :root {
             --lg-refractive-index: 1.9;
             --lg-glass-thickness: 120;
-            --lg-bezel-width: 28;
+            --lg-bezel-width: 40;
             --lg-refraction-scale: 1.6;
-            --lg-max-tilt: 15;
-            --lg-blur: 1;
+            --lg-max-tilt: 0;
+            --lg-blur: 0;
             --lg-saturation: 2.0;
             --lg-brightness: 0.5;
-            --lg-aberattion: 0.2;
-            --lg-magnetic-pull:0;
+            --lg-aberattion: 0.8;
+            --lg-magnetic-pull: 5;
         }
+
         body {
-            min-height: 150vh;
-            min-width: 300vh;
+            min-height: 200vh;
+            min-width: 350vh;
             display: flex;
             gap: 48px;
             align-items: center;
@@ -45,22 +47,23 @@
             overflow: hidden;
         }
 
-           .my-glass-card--circle {
-               position: relative;
-               width: 250px;
-               height: 250px;
-               max-width: 90vw;
-               background: rgba(255, 255, 255, 0.09);
-               border: 1px solid rgba(255, 255, 255, 0.22);
-               border-radius: 50%;
-               color: white;
-               font-family: sans-serif;
-               padding: 24px;
-               cursor: pointer;
-               transition: transform 0.1s ease-out;
-               will-change: transform;
-               overflow: hidden;
+        .my-glass-card--circle {
+            position: relative;
+            width: 250px;
+            height: 250px;
+            max-width: 90vw;
+            background: rgba(255, 255, 255, 0.09);
+            border: 1px solid rgba(255, 255, 255, 0.22);
+            border-radius: 50%;
+            color: white;
+            font-family: sans-serif;
+            padding: 24px;
+            cursor: pointer;
+            transition: transform 0.1s ease-out;
+            will-change: transform;
+            overflow: hidden;
         }
+
         .my-glass-card--square {
             position: relative;
             width: 250px;
@@ -76,6 +79,11 @@
             transition: transform 0.1s ease-out;
             will-change: transform;
             overflow: hidden;
+
+            --lg-bezel-width: 15;
+            --lg-refraction-scale: 2;
+            --lg-magnetic-pull: 0;
+            --lg-refractive-index: 2;
         }
 
         .my-glass-card:nth-child(2) {
@@ -98,53 +106,57 @@
             0% {
                 opacity: 0;
             }
+
             100% {
                 opacity: 1;
             }
         }
+
     </style>
 </head>
+
 <body>
 
-<button class="my-glass-card">
-    Standard Rect
-</button>
-<button class=" my-glass-card--circle">
-    Standard Circle
-</button>
-<button class="my-glass-card--square">
-    Square Rect
-</button>
+    <button class="my-glass-card">
+        Standard Rect
+    </button>
+    <button class=" my-glass-card--circle">
+        Standard Circle
+    </button>
+    <button class="my-glass-card--square">
+        Square Rect
+    </button>
 
-<div class="my-glass-card custom-blob"
-     data-lg-mask="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0nMzIwJyBoZWlnaHQ9JzI0MCcgdmlld0JveD0nMCAwIDMyMCAyNDAnIHhtbG5zPSdodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2Zyc+PHBhdGggZD0nTTQwLDQwIFExNjAsLTIwIDI4MCw0MCBUMjgwLDIwMCBRMTYwLDI2MCA0MCwyMDAgVDQwLDQwIFonIGZpbGw9J2JsYWNrJy8+PC9zdmc+">
-    <h2>Custom Blob</h2>
-    <p>My edges are calculated purely from the SVG mask's alpha channel.</p>
-</div>
+    <div class="my-glass-card custom-blob"
+        data-lg-mask="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0nMzIwJyBoZWlnaHQ9JzI0MCcgdmlld0JveD0nMCAwIDMyMCAyNDAnIHhtbG5zPSdodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2Zyc+PHBhdGggZD0nTTQwLDQwIFExNjAsLTIwIDI4MCw0MCBUMjgwLDIwMCBRMTYwLDI2MCA0MCwyMDAgVDQwLDQwIFonIGZpbGw9J2JsYWNrJy8+PC9zdmc+">
+        <h2>Custom Blob</h2>
+        <p>My edges are calculated purely from the SVG mask's alpha channel.</p>
+    </div>
 
-<script type="module">
-    import {LiquidGlass as liquidGlass, LiquidGlass} from './src/index.js';
+    <script type="module">
+        import { LiquidGlass as liquidGlass, LiquidGlass } from './src/index.js';
 
-    LiquidGlass.init('.my-glass-card', {
-        enableOrb: false,
-    });
-    LiquidGlass.init('.my-glass-card--circle', {
-        enableOrb: false,
-    });
-    liquidGlass.init('.my-glass-card--square', {
-        enableOrb: true,
-    })
+        LiquidGlass.init('.my-glass-card', {
+            enableOrb: false,
+        });
+        LiquidGlass.init('.my-glass-card--circle', {
+            enableOrb: false,
+        });
+        liquidGlass.init('.my-glass-card--square', {
+            enableOrb: true,
+        })
 
-    document.querySelectorAll('.my-glass-card').forEach(card => {
-        card.addEventListener('click', (e) => {
-            LiquidGlass.addRipple(card, e, {
-                color:'rgb(255,255,255)',
-                sizeMultiplier:4,
-                durationMs: 4000,
+        document.querySelectorAll('.my-glass-card').forEach(card => {
+            card.addEventListener('click', (e) => {
+                LiquidGlass.addRipple(card, e, {
+                    color: 'rgb(255,255,255)',
+                    sizeMultiplier: 4,
+                    durationMs: 4000,
+                });
             });
         });
-    });
-</script>
+    </script>
 
 </body>
+
 </html>

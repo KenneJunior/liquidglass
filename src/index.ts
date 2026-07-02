@@ -285,8 +285,7 @@ class MathUtils  {
      * @param maxD Maximum displacement magnitude for scaling
      * @return ImageData containing normalized displacement vectors (R=X, G=Y)
      */
-    public static calculateDisplacementFromAlpha (maskImg: HTMLImageElement, W: number, H: number, _bw: number, maxD: number):ImageData
-        {
+    public static calculateDisplacementFromAlpha (maskImg: HTMLImageElement, W: number, H: number, _bw: number, maxD: number):ImageData {
             const canvas = document.createElement('canvas');
             canvas.width = W;
             canvas.height = H;
@@ -342,40 +341,63 @@ class MathUtils  {
      * @param bw Bezel (edge transition) width
      * @param ri Refractive index of glass
      * @param samples Number of sample points. Default: 128
-     * @return Array of displacement values for each sample
-     */
-    public static calculateDisplacementMap1D (gt: number, bw: number,  ri: number, samples = 128) {
-        const eta = 1 / ri; // relative refractive index
-        const result: number[] = [];
+     * @return Float32Array of displacement values for contiguous memory mapping
+     * */
+    public static calculateDisplacementMap1D(gt: number, bw: number, ri: number, samples = 128): Float32Array {
+        const eta = 1 / ri;
+        const etaSq = eta * eta;
+
+        // 1. Use TypedArray for contiguous memory and zero GC overhead
+        const result = new Float32Array(samples);
+        const dxOffset = 0.0001;
 
         for (let i = 0; i < samples; i++) {
             const x = i / samples;
             const y = this.surfaceProfile(x);
 
-            // Approximate surface normal via finite differences
-            const dx = 0.0001;
-            const dy = (this.surfaceProfile(Math.min(1, x + dx)) - this.surfaceProfile(Math.max(0, x - dx))) / (2 * dx);
-            const mag = Math.sqrt(dy * dy + 1);
-            const nx = -dy / mag, ny = -1 / mag; // surface normal
+            // 2. Corrected Finite Difference
+            // Dynamically calculate the actual delta-x to prevent derivative
+            // halving at the absolute edges (x=0 and x=1)
+            const xPlus = Math.min(1, x + dxOffset);
+            const xMinus = Math.max(0, x - dxOffset);
+            const actualDx = xPlus - xMinus;
 
-            // Apply Snell's law: n1 * sin(i) = n2 * sin(t)
-            const cosI = ny;
-            const k = 1 - eta * eta * (1 - cosI * cosI);
+            // Failsafe for zero-width delta (should only theoretically happen if samples = 1)
+            if (actualDx <= 0) continue;
 
-            if (k < 0) {
-                // Total internal reflection: no refraction
-                result.push(0);
-            } else {
-                // Calculate refracted ray direction and displacement
+            const dy = (this.surfaceProfile(xPlus) - this.surfaceProfile(xMinus)) / actualDx;
+            const dySq = dy * dy;
+
+            // 3. Optimized Trigonometry
+            // cos^2(i) is equivalent to ny^2 = 1 / (dy^2 + 1)
+            const cosISq = 1 / (dySq + 1);
+
+            // Apply Snell's law: k = 1 - eta^2 * sin^2(i)
+            const k = 1 - etaSq * (1 - cosISq);
+
+            // If k < 0, Total Internal Reflection occurs.
+            // Float32Array defaults to 0, so we only compute if k >= 0.
+            if (k >= 0) {
+                const mag = Math.sqrt(dySq + 1);
+                const nx = -dy / mag;
+                const ny = -1 / mag; // This is cos(i)
+
                 const sqrtk = Math.sqrt(k);
-                const rf0 = -(eta * cosI + sqrtk) * nx;
-                const rf1 = eta - (eta * cosI + sqrtk) * ny;
-                result.push(rf1 !== 0 ? rf0 * ((y * bw + gt) / rf1) : 0);
+                const c = (eta * ny) + sqrtk;
+
+                // Calculate refracted ray direction components
+                const rf0 = -c * nx;
+                const rf1 = eta - (c * ny);
+
+                // Project ray to the back of the glass layer
+                if (rf1 !== 0) {
+                    result[i] = rf0 * ((y * bw + gt) / rf1);
+                }
             }
         }
+
         return result;
     }
-
     /**
      * Calculate 2D displacement map for a rounded rectangle glass effect
      *
@@ -393,49 +415,69 @@ class MathUtils  {
      * @param profile 1D displacement profile array
      * @return ImageData with displacement vectors (R=X, G=Y, both normalized)
      */
-    public static calculateDisplacementMap2D (cW: number, cH: number, oW: number, oH: number, rad: number, bw: number, maxD: number, profile: number[])  {
+    public static calculateDisplacementMap2D(
+        cW: number, cH: number,
+        oW: number, oH: number,
+        rad: number, bw: number,
+        maxD: number,
+        profile: Float32Array // Now accepting the optimized TypedArray
+    ): ImageData {
         const img = new ImageData(cW, cH);
+
+        // 1. High-speed 32-bit memory initialization
+        // 0xFF808080 represents A=255, B=128, G=128, R=128 (Neutral Vector)
+        // This is magnitudes faster than iterating i+=4 through the Uint8ClampedArray
+        const view32 = new Uint32Array(img.data.buffer);
+        view32.fill(0xFF808080);
+
         const data = img.data;
 
-        // Initialize with neutral displacement
-        for (let i = 0; i < data.length; i += 4) {
-            data[i] = data[i + 1] = 128;
-            data[i + 3] = 255;
-        }
+        // Precalculate geometric constants
+        const rSq = rad * rad;
+        const rp1Sq = (rad + 1) * (rad + 1);
+        const rmBwSq = Math.max(0, rad - bw);
+        const rmBwSq2 = rmBwSq * rmBwSq;
 
-        // Precompute frequently used values
-        const rSq = rad * rad, rp1Sq = (rad + 1) ** 2, rmBwSq = Math.max(0, rad - bw) ** 2;
-        const wB = oW - rad * 2, hB = oH - rad * 2;
-        const oX = (cW - oW) / 2, oY = (cH - oH) / 2;
+        const wB = oW - rad * 2;
+        const hB = oH - rad * 2;
+        const oX = (cW - oW) / 2;
+        const oY = (cH - oH) / 2;
         const safeMaxD = maxD || 1;
+        const profileLen = profile.length - 1;
 
-        // Rasterize the glass shape
         for (let y1 = 0; y1 < oH; y1++) {
             for (let x1 = 0; x1 < oW; x1++) {
                 let cx = 0, cy = 0;
 
-                // Distance from nearest corner (handles rounded corners)
+                // Distance from nearest corner/focal point
                 if (x1 < rad) cx = x1 - rad;
                 else if (x1 >= oW - rad) cx = x1 - rad - wB;
+
                 if (y1 < rad) cy = y1 - rad;
                 else if (y1 >= oH - rad) cy = y1 - rad - hB;
 
                 const dSq = cx * cx + cy * cy;
 
-                // Only process pixels in bezel zone (edge of glass)
-                if (dSq <= rp1Sq && dSq >= rmBwSq) {
+                if (dSq <= rp1Sq && dSq >= rmBwSq2) {
                     const dist = Math.sqrt(dSq);
-                    const op = dSq < rSq ? 1 : 1 - (dist - rad) / (Math.sqrt(rp1Sq) - rad); // opacity
 
-                    // Sample the 1D profile to get displacement magnitude
-                    const bIdx = Math.floor(Math.max(0, Math.min(1, (rad - dist) / bw)) * (profile.length - 1));
-                    const dVal = profile[bIdx] || 0;
+                    // 2. Algebraically reduced anti-aliasing
+                    const op = dSq < rSq ? 1 : 1 - (dist - rad);
 
-                    // Convert displacement to X,Y components (pointing outward from edge)
-                    const dX = (-(dist > 0 ? cx / dist : 0) * dVal) / safeMaxD;
-                    const dY = (-(dist > 0 ? cy / dist : 0) * dVal) / safeMaxD;
+                    // 3. Linear Interpolation (Lerp) for sub-array precision
+                    const exactIdx = Math.max(0, Math.min(1, (rad - dist) / bw)) * profileLen;
+                    const idxLow = Math.floor(exactIdx);
+                    const idxHigh = Math.min(idxLow + 1, profileLen);
+                    const fraction = exactIdx - idxLow;
+
+                    const dVal = (profile[idxLow] * (1 - fraction)) + (profile[idxHigh] * fraction);
+
+                    const distNorm = dist > 0 ? 1 / dist : 0;
+                    const dX = (-cx * distNorm * dVal) / safeMaxD;
+                    const dY = (-cy * distNorm * dVal) / safeMaxD;
 
                     const idx = ((oY + y1) * cW + oX + x1) * 4;
+
                     data[idx] = Math.max(0, Math.min(255, 128 + dX * 127 * op));
                     data[idx + 1] = Math.max(0, Math.min(255, 128 + dY * 127 * op));
                 }
@@ -443,7 +485,6 @@ class MathUtils  {
         }
         return img;
     }
-
     /**
      * Calculate specular (shine) highlight for glass reflection
      *
@@ -653,7 +694,7 @@ async function buildGlassFilterAsync(
  *
  * Each instance is cached in LiquidGlass.instances for lifecycle management.
  */
-export class LiquidGlassSurface {
+ class LiquidGlassSurface {
     private readonly el: HTMLElement;
     private readonly cacheMap: Map<string, FilterCacheResult>;
     private jsOptions: LiquidGlassOptions;
