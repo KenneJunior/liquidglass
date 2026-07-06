@@ -32,59 +32,104 @@ import { buildGlassFilterAsync } from "./filters.ts";
  *       <svg> … filter …
  *  ```
  */
-export class LiquidGlassSwitch {
-    private readonly cfg: Required<SwitchOptions> & {
-        iconOff: string;
-        iconOn: string;
-        iconColorOff: string;
-        iconColorOn: string;
-        colorOff: number[];
-        colorOn: number[];
-    };
 
-    // ── State ────────────────────────────────────────────────────────────────
-    private checked: boolean;
-    private isPressed = false;
-    private dragStartX = 0;
-    private thumbRatio: number;   // 0=off, 1=on — updated during drag
+// ─────────────────────────────────────────────────────────────────────────────
+// INTERNAL CONFIG TYPE
+// Extends the public SwitchOptions with the RGBA array colour model used
+// internally for physics interpolation, and with the icon fields.
+// ─────────────────────────────────────────────────────────────────────────────
 
-    // ── Springs ──────────────────────────────────────────────────────────────
-    // xr and tc are position/colour springs that run even when not pressed.
-    // sc, bo, sr are press-response springs.
-    private spXr = new Spring(1, 1000, 80);  // thumb position ratio 0–1
-    private spSc = new Spring(0.65, 2000, 80);  // scale
-    private spBo = new Spring(1, 2000, 80);  // brightness
-    private spTc = new Spring(1, 1000, 80);  // track colour 0=off, 1=on
-    private spSr = new Spring(0.4, 100, 10);  // refraction scale
 
-    // ── DOM refs ─────────────────────────────────────────────────────────────
-    private track!: HTMLElement;
-    private thumb!: HTMLElement;
-    private thumbInner!: HTMLElement;
-    private cloneInner!: HTMLElement;
-    private iconOffEl!: HTMLElement;
-    private iconOnEl!: HTMLElement;
+// ─────────────────────────────────────────────────────────────────────────────
+// SPRING PRESETS  (stiffness, damping)
+// ─────────────────────────────────────────────────────────────────────────────
+    const SP_POS    = [1000, 80]  as const;  // xr  — thumb position
+    const SP_SCALE  = [2000, 80]  as const;  // sc  — scale squish
+    const SP_BRIGHT = [2000, 80]  as const;  // bo  — brightness
+    const SP_COLOR  = [1000, 80]  as const;  // tc  — track colour
+    const SP_REFR   = [100,  10]  as const;  // sr  — refraction pulse
 
-    // ── Filter ───────────────────────────────────────────────────────────────
-    private filter?: FilterCacheResult;
-    private filterId?: string;
-    private maxDisp = 0;
-    private rafId: number | null = null;
+// ─────────────────────────────────────────────────────────────────────────────
+// HELPERS
+// ─────────────────────────────────────────────────────────────────────────────
 
-    private geo!: {
-        thumbTravel: number;
-        restOffset: number;
-    };
+function css(el: HTMLElement, props: Partial<CSSStyleDeclaration>): void {
+    Object.assign(el.style, props);
+}
 
-    private static get useBackdrop(): boolean {
-        const t = document.createElement('div');
-        t.style.backdropFilter = 'url(#test)';
-        return !!(window as any).chrome && t.style.backdropFilter.includes('url');
+/** Normalise a colour input to a 4-element RGBA tuple. */
+function toRGBA(raw: unknown, fallback: [number,number,number,number]): [number,number,number,number] {
+    if (Array.isArray(raw) && raw.length >= 3) {
+        return [
+            Number(raw[0]) || 0,
+            Number(raw[1]) || 0,
+            Number(raw[2]) || 0,
+            raw.length >= 4 ? Number(raw[3]) : fallback[3],
+        ];
     }
+    return fallback;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SWITCH CLASS
+// ─────────────────────────────────────────────────────────────────────────────
+
+export class LiquidGlassSwitch {
+    // ── Config ────────────────────────────────────────────────────────────────
+    private readonly cfg: SwitchOptions;
+
+    // ── State ─────────────────────────────────────────────────────────────────
+    private checked:     boolean;
+    private isPressed    = false;
+    private isDestroyed  = false;
+    private dragStartX   = 0;
+    /** 0 = fully OFF, 1 = fully ON — updated continuously during drag */
+    private thumbRatio:  number;
+
+    // ── Springs ───────────────────────────────────────────────────────────────
+    private spXr: Spring;  // thumb X position ratio 0–1
+    private spSc: Spring;  // scale squish
+    private spBo: Spring;  // brightness (1 = white, 0 = transparent/glass)
+    private spTc: Spring;  // track colour interpolation 0–1
+    private spSr: Spring;  // refraction displacement scale
+
+    // ── DOM refs ──────────────────────────────────────────────────────────────
+    private track!:       HTMLElement;
+    private thumb!:       HTMLElement;
+    private thumbClone!:  HTMLElement;   // cached — no querySelector in loop
+    private thumbInner!:  HTMLElement;
+    private cloneInner!:  HTMLElement;
+    private iconOffEl!:   HTMLElement;
+    private iconOnEl!:    HTMLElement;
+
+    // ── Filter ────────────────────────────────────────────────────────────────
+    private filter?:   FilterCacheResult;
+    private filterId?: string;
+    private maxDisp    = 0;
+    private rafId:     number | null = null;
+
+    // ── Geometry ──────────────────────────────────────────────────────────────
+    private geo!: { thumbTravel: number; restOffset: number; };
+
+    // ── Feature detection — computed once, never re-evaluated ─────────────────
+    private static _useBackdrop: boolean | null = null;
+    private static get useBackdrop(): boolean {
+        if (this._useBackdrop === null) {
+            const t = document.createElement('div');
+            t.style.backdropFilter = 'url(#test)';
+            this._useBackdrop =
+                !!(window as any).chrome && t.style.backdropFilter.includes('url');
+        }
+        return this._useBackdrop;
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // CONSTRUCTOR
+    // ─────────────────────────────────────────────────────────────────────────
 
     constructor(
         private readonly container: HTMLElement,
-        options: any = {},
+        options: SwitchOptions
     ) {
         this.cfg = {
             refractiveIndex: options.refractiveIndex ?? 1.5,
@@ -97,90 +142,149 @@ export class LiquidGlassSwitch {
             thumbWidth:      options.thumbWidth       ?? 146,
             thumbHeight:     options.thumbHeight      ?? 92,
             thumbRadius:     options.thumbRadius      ?? 46,
-            // Colors must be [R, G, B, A] arrays for smooth physics interpolation
-            colorOff:        options.colorOff         ?? [255, 255, 255, 0.05],
-            colorOn:         options.colorOn          ?? [139, 92, 246, 0.5],
+            colorOff:        toRGBA(options.colorOff, [255, 255, 255, 0.05]),
+            colorOn:         toRGBA(options.colorOn,  [139, 92,  246, 0.50]),
             checked:         options.checked          ?? true,
-            // New Icon Properties
             iconOff:         options.iconOff          ?? '',
             iconOn:          options.iconOn           ?? '',
             iconColorOff:    options.iconColorOff     ?? '#8A8A98',
-            iconColorOn:     options.iconColorOn      ?? '#10B981', // Default emerald green
+            iconColorOn:     options.iconColorOn      ?? '#ffffff',
+            iconSize:        options.iconSize         ?? 20,
             onChange:        options.onChange         ?? (() => {}),
-        } as any;
+        };
 
-        this.checked      = this.cfg.checked;
-        this.thumbRatio   = this.checked ? 1 : 0;
+        this.checked    = this.cfg.checked;
+        this.thumbRatio = this.checked ? 1 : 0;
 
-        // Start springs at their settled values so there's no initial animation
+        const restScale = this.cfg.thumbHeight / this.cfg.thumbWidth;
+
+        // Initialise all springs at their settled starting values so
+        // there is no entry animation on first paint
+        this.spXr = new Spring(this.thumbRatio, ...SP_POS);
+        this.spSc = new Spring(restScale,       ...SP_SCALE);
+        this.spBo = new Spring(1,               ...SP_BRIGHT);
+        this.spTc = new Spring(this.thumbRatio,  ...SP_COLOR);
+        this.spSr = new Spring(0.4,             ...SP_REFR);
+
         this.spXr.setTarget(this.thumbRatio);
         this.spTc.setTarget(this.thumbRatio);
 
         this._buildDOM();
         this._computeGeo();
-        this._buildFilter();
+        this._buildFilter();   // async — upgrades visually once resolved
         this._bindEvents();
         this._kick();
     }
 
-    // ── DOM construction ─────────────────────────────────────────────────────
+    // ─────────────────────────────────────────────────────────────────────────
+    // § 1  DOM CONSTRUCTION
+    // ─────────────────────────────────────────────────────────────────────────
 
+    /**
+     * Injects the switch DOM into this.container.
+     *
+     * Layer order inside .lg-switch-thumb (bottom → top):
+     *   1. .lg-switch-thumb-clone      — clone-world background (non-Chrome)
+     *   2. .lg-switch-thumb-inner      — receives backdrop-filter or CSS filter
+     *   3. .lg-switch-icons            — OFF + ON icon pair, cross-faded by tc spring
+     *   4. <svg>                       — placeholder; replaced by _buildFilter()
+     *
+     * The track and thumb have box-sizing:border-box forced so host-page
+     * stylesheets using * { box-sizing: border-box } don't corrupt px maths.
+     */
     private _buildDOM(): void {
-        const { trackWidth, trackHeight, thumbWidth, thumbHeight, thumbRadius } = this.cfg;
+        const {
+            trackWidth, trackHeight,
+            thumbWidth, thumbHeight, thumbRadius,
+            iconOff, iconOn, iconColorOff, iconColorOn, iconSize,
+        } = this.cfg;
 
-        this.container.style.position = 'relative';
+        // Initial icon visibility: set correctly before first _loop tick
+        // so both icons are never simultaneously visible on first paint
+        const iconOffOpacity = this.checked ? '0' : '1';
+        const iconOnOpacity  = this.checked ? '1' : '0';
+        const iconOffScale   = this.checked ? '0.8' : '1';
+        const iconOnScale    = this.checked ? '1'   : '0.8';
+
+        css(this.container, {
+            position:  'relative',
+            display:   'inline-block',
+            boxSizing: 'content-box',
+        });
+
         this.container.innerHTML = `
           <div class="lg-switch-track" style="
-            display:inline-block; position:relative;
+            display:inline-block; position:relative; box-sizing:border-box;
             width:${trackWidth}px; height:${trackHeight}px;
-            border-radius:${trackHeight}px;
-            cursor:pointer;
+            border-radius:${trackHeight / 2}px;
+            cursor:pointer; overflow:visible;
             box-shadow:inset 0 2px 10px rgba(0,0,0,0.5);
-            border:1px solid rgba(255,255,255,0.05);
-            overflow:visible;
+            border:1px solid rgba(255,255,255,0.06);
+            will-change:background-color;
           ">
             <div class="lg-switch-thumb" style="
-              position:absolute;
+              position:absolute; box-sizing:border-box;
               width:${thumbWidth}px; height:${thumbHeight}px;
               border-radius:${thumbRadius}px;
               top:${trackHeight / 2}px;
-              transform:translateY(-50%) scale(0.65);
+              transform:translateY(-50%) scale(${this.cfg.thumbHeight / this.cfg.thumbWidth});
               transform-origin:center center;
-              cursor:pointer; touch-action:none; user-select:none;
+              cursor:grab; touch-action:none; user-select:none;
               background-color:rgba(255,255,255,1);
-              box-shadow:0 10px 30px rgba(0,0,0,0.5);
+              box-shadow:
+                0 10px 30px rgba(0,0,0,0.5),
+                inset 0 1px 0 rgba(255,255,255,0.6);
               overflow:hidden;
               will-change:transform,left,background-color,box-shadow;
-              z-index:10;              
+              z-index:10;
+              isolation:isolate;
             ">
               <div class="lg-switch-thumb-clone" style="
-                position:absolute; top:0; left:0; width:100%; height:100%;
-                overflow:hidden; border-radius:inherit; z-index:1; opacity:0;
-                will-change:opacity;
+                position:absolute; inset:0; box-sizing:border-box;
+                overflow:hidden; border-radius:inherit;
+                z-index:1; opacity:0; will-change:opacity;
                 ${LiquidGlassSwitch.useBackdrop ? 'display:none;' : ''}
               ">
                 <div class="lg-switch-thumb-clone-inner" style="
-                  position:absolute; top:0; left:0; pointer-events:none;
+                  position:absolute; top:0; left:0;
+                  pointer-events:none; box-sizing:border-box;
                 "></div>
               </div>
+
               <div class="lg-switch-thumb-inner" style="
-                position:absolute; top:0; left:0; width:100%; height:100%;
+                position:absolute; inset:0; box-sizing:border-box;
                 border-radius:inherit; z-index:3; pointer-events:none;
               "></div>
-              
+
               <div class="lg-switch-icons" style="
-                position:absolute; inset:0; display:flex; align-items:center; justify-content:center; 
+                position:absolute; inset:0; box-sizing:border-box;
+                display:flex; align-items:center; justify-content:center;
                 z-index:20; pointer-events:none;
+                font-size:${iconSize}px; line-height:1;
               ">
-                <div class="lg-icon-off" style="position:absolute; display:flex; align-items:center; justify-content:center; color:${this.cfg.iconColorOff};">
-                  ${this.cfg.iconOff}
-                </div>
-                <div class="lg-icon-on" style="position:absolute; display:flex; align-items:center; justify-content:center; color:${this.cfg.iconColorOn};">
-                  ${this.cfg.iconOn}
-                </div>
+                <div class="lg-icon-off" style="
+                  position:absolute;
+                  display:flex; align-items:center; justify-content:center;
+                  color:${iconColorOff};
+                  opacity:${iconOffOpacity};
+                  transform:scale(${iconOffScale});
+                  transition:none;
+                  will-change:opacity,transform;
+                ">${iconOff}</div>
+
+                <div class="lg-icon-on" style="
+                  position:absolute;
+                  display:flex; align-items:center; justify-content:center;
+                  color:${iconColorOn};
+                  opacity:${iconOnOpacity};
+                  transform:scale(${iconOnScale});
+                  transition:none;
+                  will-change:opacity,transform;
+                ">${iconOn}</div>
               </div>
 
-              <svg style="width:0;height:0;position:absolute;" aria-hidden="true">
+              <svg style="position:absolute;width:0;height:0;overflow:hidden;"
+                   aria-hidden="true">
                 <defs></defs>
               </svg>
             </div>
@@ -188,242 +292,308 @@ export class LiquidGlassSwitch {
 
         this.track      = this.container.querySelector('.lg-switch-track')!;
         this.thumb      = this.container.querySelector('.lg-switch-thumb')!;
+        this.thumbClone = this.container.querySelector('.lg-switch-thumb-clone')!;
         this.thumbInner = this.container.querySelector('.lg-switch-thumb-inner')!;
         this.cloneInner = this.container.querySelector('.lg-switch-thumb-clone-inner')!;
         this.iconOffEl  = this.container.querySelector('.lg-icon-off')!;
         this.iconOnEl   = this.container.querySelector('.lg-icon-on')!;
     }
-    /** Computes geometry constants that depend on final CSS layout. */
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // § 2  GEOMETRY
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Computes the two geometry constants used by _loop to position the thumb.
+     *
+     * Ported verbatim from demo.html (Pebble & Void):
+     *   ro = ((1 - restScale) * thumbWidth) / 2
+     *   tr = trackWidth - trackHeight - (thumbWidth - thumbHeight) * restScale
+     */
     private _computeGeo(): void {
-        const {trackWidth, trackHeight, thumbWidth, thumbHeight} = this.cfg;
+        const { trackWidth, trackHeight, thumbWidth, thumbHeight } = this.cfg;
         const restScale = thumbHeight / thumbWidth;
         const ro = ((1 - restScale) * thumbWidth) / 2;
         const tr = trackWidth - trackHeight - (thumbWidth - thumbHeight) * restScale;
-        this.geo = {thumbTravel: tr, restOffset: ro};
+        this.geo = { thumbTravel: tr, restOffset: ro };
     }
 
-    // ── Filter construction ──────────────────────────────────────────────────
+    // ─────────────────────────────────────────────────────────────────────────
+    // § 3  SVG FILTER
+    // ─────────────────────────────────────────────────────────────────────────
 
     private async _buildFilter(): Promise<void> {
-        const { thumbWidth: W, thumbHeight: H, thumbRadius: R,
+        const {
+            thumbWidth: W, thumbHeight: H, thumbRadius: R,
             glassThickness, bezelWidth, refractiveIndex,
-            refractionScale, specularAlpha } = this.cfg;
+            refractionScale, specularAlpha,
+        } = this.cfg;
 
         const opts = {
             glassThickness, bezelWidth, refractiveIndex,
             refractionScale, specularAlpha,
             backdrop: { blur: 0.2, saturation: 6, brightness: 1.0 },
-            maxTilt: 0, reducedMotion: false,
-            aberration: 0, magneticPull: 0,
-        } as Required<Omit<LiquidGlassOptions, 'enableOrb'|'orbColor'|'enableMobileSupport'>>;
+            maxTilt: 0, reducedMotion: false, aberration: 0, magneticPull: 0,
+        } as Required<Omit<LiquidGlassOptions, 'enableOrb' | 'orbColor' | 'enableMobileSupport'>>;
 
         const fakeEl = Object.assign(document.createElement('div'), {
-            style: { borderRadius: `${R}px` },
+            style:                { borderRadius: `${R}px` },
             getBoundingClientRect: () => ({
-                width: W, height: H, top: 0, left: 0, right: W, bottom: H, x: 0, y: 0,
-                toJSON: () => {}
+                width: W, height: H, top: 0, left: 0,
+                right: W, bottom: H, x: 0, y: 0,
+                toJSON: () => ({}),
             }),
             getAttribute: () => null,
         }) as unknown as HTMLElement;
 
-        this.filter   = await buildGlassFilterAsync(fakeEl, opts);
-        this.maxDisp  = this.filter.maxDisp;
-        this.filterId = this.filter.id;
+        const result = await buildGlassFilterAsync(fakeEl, opts);
 
-        const svgDefs = this.thumb.querySelector('svg defs')!;
-        svgDefs.parentElement!.replaceWith(this.filter.svg);
+        // Guard: destroy() may have been called while the filter was building
+        if (this.isDestroyed) {
+            result.svg.remove();
+            return;
+        }
+
+        this.filter   = result;
+        this.maxDisp  = result.maxDisp;
+        this.filterId = result.id;
+
+        // Replace the empty <svg> placeholder inside the thumb
+        const placeholder = this.thumb.querySelector('svg');
+        if (placeholder) placeholder.replaceWith(result.svg);
+        else this.thumb.appendChild(result.svg);
 
         if (LiquidGlassSwitch.useBackdrop) {
-            const bf = `url(#${this.filterId})`;
-            this.thumbInner.style.backdropFilter = bf;
-            (this.thumbInner.style as any).webkitBackdropFilter = bf;
+            const ref = `url(#${this.filterId})`;
+            this.thumbInner.style.backdropFilter          = ref;
+            (this.thumbInner.style as any).webkitBackdropFilter = ref;
         } else {
             this.cloneInner.style.filter = `url(#${this.filterId})`;
             this.cloneInner.style.background =
-                getComputedStyle(this.container.parentElement || document.body).background;
+                getComputedStyle(this.container.parentElement ?? document.body).background;
         }
     }
 
-    // ── Spring loop ──────────────────────────────────────────────────────────
+    // ─────────────────────────────────────────────────────────────────────────
+    // § 4  SPRING LOOP
+    // ─────────────────────────────────────────────────────────────────────────
 
     private _kick(): void {
-        if (!this.rafId) this.rafId = requestAnimationFrame(() => this._loop());
+        if (!this.rafId && !this.isDestroyed) {
+            this.rafId = requestAnimationFrame(() => this._loop());
+        }
     }
 
     private _loop(): void {
         const dt = Math.min(0.032, 1 / 60);
-        const {trackWidth, trackHeight, thumbWidth, thumbHeight} = this.cfg;
-        const {thumbTravel, restOffset} = this.geo;
+        const { trackWidth, trackHeight, thumbWidth, thumbHeight } = this.cfg;
+        const { thumbTravel, restOffset } = this.geo;
 
-        // Settle springs that don't depend on press state every frame
+        // ── Spring targets ────────────────────────────────────────────────────
+        // Position and colour springs settle toward checked state when not dragging
         if (!this.isPressed) {
             this.spXr.setTarget(this.checked ? 1 : 0);
         }
+        // Track colour leads the thumb during drag; snaps to final state on release
         this.spTc.setTarget(
             this.isPressed
                 ? (this.thumbRatio > 0.5 ? 1 : 0)
                 : (this.checked ? 1 : 0)
         );
 
+        // ── Advance springs ───────────────────────────────────────────────────
         const xr = this.spXr.update(dt);
         const sc = this.spSc.update(dt);
         const bo = this.spBo.update(dt);
         const tc = this.spTc.update(dt);
         const sr = this.spSr.update(dt);
 
-        // Thumb X position — port of demo.html:
-        //   tx = -ro + (th - h * sr) / 2 + xr * tr
-        // where th=trackHeight, h=thumbHeight, sr=restScale (constant).
-        // sc is NOT used here — it only drives transform:scale(), not left.
-        const restScale = this.cfg.thumbHeight / this.cfg.thumbWidth;
-        const tx = -restOffset + (this.cfg.trackHeight - this.cfg.thumbHeight * restScale) / 2 + xr * thumbTravel;
-        this.thumb.style.left = `${tx}px`;
-        this.thumb.style.transform = `translateY(-50%) scale(${sc})`;
-        this.thumb.style.backgroundColor = `rgba(255,255,255,${bo})`;
+        // ── Thumb position ────────────────────────────────────────────────────
+        // Ported from demo.html: tx = -ro + (th - h * restScale) / 2 + xr * tr
+        // sc drives transform:scale() only — never mixed into the left calculation
+        const restScale = thumbHeight / thumbWidth;
+        const tx = -restOffset
+            + (trackHeight - thumbHeight * restScale) / 2
+            + xr * thumbTravel;
+
+        this.thumb.style.left      = `${tx}px`;
+        this.thumb.style.transform = `translateY(-50%) scale(${sc.toFixed(4)})`;
+        this.thumb.style.backgroundColor = `rgba(255,255,255,${bo.toFixed(3)})`;
         this.thumb.style.boxShadow = this.isPressed
-            ? '0 4px 22px rgba(0,0,0,0.1),inset 2px 7px 24px rgba(0,0,0,0.09),inset -2px -7px 24px rgba(255,255,255,0.09)'
-            : '0 10px 30px rgba(0,0,0,0.5)';
+            ? '0 4px 22px rgba(0,0,0,0.10),'  +
+            'inset 2px 7px 24px rgba(0,0,0,0.09),' +
+            'inset -2px -7px 24px rgba(255,255,255,0.09)'
+            : '0 10px 30px rgba(0,0,0,0.50),'  +
+            'inset 0 1px 0 rgba(255,255,255,0.60)';
 
-        // Clone fades in when thumb turns glass
-        const cloneEl = this.thumb.querySelector('.lg-switch-thumb-clone') as HTMLElement | null;
-        if (cloneEl) cloneEl.style.opacity = String(1 - bo);
+        // ── Clone opacity — inverse of thumb brightness ────────────────────────
+        // bo=1 (opaque white) → clone invisible; bo=0 (glass) → clone fully visible
+        this.thumbClone.style.opacity = (1 - bo).toFixed(3);
 
-        // --- 1. Track Color Interpolation ---
-        const [offR, offG, offB, offA = 0.05] = this.cfg.colorOff;
-        const [onR, onG, onB, onA = 0.5] = this.cfg.colorOn;
-
+        // ── Track colour ──────────────────────────────────────────────────────
+        // Both off and on colours are full RGBA tuples — interpolated per channel
+        const [offR, offG, offB, offA] = this.cfg.colorOff;
+        const [onR,  onG,  onB,  onA ] = this.cfg.colorOn;
         const r = Math.round(offR + (onR - offR) * tc);
         const g = Math.round(offG + (onG - offG) * tc);
         const b = Math.round(offB + (onB - offB) * tc);
-        const a = offA + (onA - offA) * tc;
-
+        const a = (offA + (onA - offA) * tc).toFixed(3);
         this.track.style.backgroundColor = `rgba(${r},${g},${b},${a})`;
 
-        // --- 2. Icon Cross-Fade & Scale Physics ---
-        if (this.iconOffEl && this.iconOnEl) {
-            this.iconOffEl.style.opacity = String(1 - tc);
-            this.iconOnEl.style.opacity = String(tc);
-            // Slight pop-in effect aligned with the spring bounce
-            this.iconOffEl.style.transform = `scale(${0.8 + 0.2 * (1 - tc)})`;
-            this.iconOnEl.style.transform = `scale(${0.8 + 0.2 * tc})`;
-        }
+        // ── Icon cross-fade ───────────────────────────────────────────────────
+        // OFF fades out / shrinks as tc → 1; ON fades in / grows as tc → 1
+        // The slight scale bounce (0.8 → 1.0) adds visual pop aligned with
+        // the spring overshoot so icons feel physically connected to the motion
+        this.iconOffEl.style.opacity   = (1 - tc).toFixed(3);
+        this.iconOffEl.style.transform = `scale(${(0.8 + 0.2 * (1 - tc)).toFixed(3)})`;
+        this.iconOnEl.style.opacity    = tc.toFixed(3);
+        this.iconOnEl.style.transform  = `scale(${(0.8 + 0.2 * tc).toFixed(3)})`;
 
-        if (this.filter?.mapElG) {
+        // ── Refraction scale ──────────────────────────────────────────────────
+        if (this.filter) {
             const scale = (this.maxDisp * this.cfg.refractionScale * sr).toFixed(3);
             this.filter.mapElR?.setAttribute('scale', scale);
             this.filter.mapElG?.setAttribute('scale', scale);
             this.filter.mapElB?.setAttribute('scale', scale);
         }
 
-        // Clone-world repositioning (non-backdrop-filter path)
+        // ── Clone-world offset ────────────────────────────────────────────────
         if (!LiquidGlassSwitch.useBackdrop) {
             const aR = this.container.getBoundingClientRect();
-            const cl = (aR.width - trackWidth) / 2;
-            const ct = (aR.height - trackHeight) / 2;
-            this.cloneInner.style.width = `${aR.width}px`;
-            this.cloneInner.style.height = `${aR.height}px`;
-            this.cloneInner.style.transform =
-                `translate(${-(cl + tx)}px, ${-(ct + (trackHeight / 2 - thumbHeight / 2))}px)`;
+            const cl = (aR.width  - trackWidth)  / 2;
+            const ct = (aR.height - trackHeight)  / 2;
+            css(this.cloneInner, {
+                width:     `${aR.width}px`,
+                height:    `${aR.height}px`,
+                transform: `translate(${-(cl + tx)}px,${-(ct + (trackHeight / 2 - thumbHeight / 2))}px)`,
+            });
             this.cloneInner.style.setProperty('--lg-switch-track-color', `rgba(${r},${g},${b},${a})`);
             this.cloneInner.style.setProperty('--lg-track-left', `${cl}px`);
-            this.cloneInner.style.setProperty('--lg-track-top', `${ct}px`);
+            this.cloneInner.style.setProperty('--lg-track-top',  `${ct}px`);
         }
 
-        const settled = this.spXr.isSettled() && this.spSc.isSettled() &&
+        // ── Loop control ──────────────────────────────────────────────────────
+        const settled =
+            this.spXr.isSettled() && this.spSc.isSettled() &&
             this.spBo.isSettled() && this.spTc.isSettled() && this.spSr.isSettled();
-        this.rafId = settled ? null : requestAnimationFrame(() => this._loop());
+
+        this.rafId = (settled || this.isDestroyed)
+            ? null
+            : requestAnimationFrame(() => this._loop());
     }
 
-    // ── Pointer events ───────────────────────────────────────────────────────
+    // ─────────────────────────────────────────────────────────────────────────
+    // § 5  POINTER EVENTS
+    // ─────────────────────────────────────────────────────────────────────────
 
     private _bindEvents(): void {
+        const restScale = this.cfg.thumbHeight / this.cfg.thumbWidth;
+
+        // ── Down ─────────────────────────────────────────────────────────────
         const onDown = (clientX: number) => {
-            this.isPressed = true;
-            this.dragStartX = clientX;
-            this.thumbRatio = this.checked ? 1 : 0;
+            if (this.isDestroyed) return;
+            this.isPressed   = true;
+            this.dragStartX  = clientX;
+            this.thumbRatio  = this.checked ? 1 : 0;
+            this.thumb.style.cursor = 'grabbing';
             this.spSc.setTarget(0.9);
-            this.spBo.setTarget(0.1);
+            this.spBo.setTarget(0.08);
             this.spSr.setTarget(0.9);
             this._kick();
         };
 
+        // ── Move ─────────────────────────────────────────────────────────────
         const onMove = (clientX: number) => {
-            if (!this.isPressed) return;
-            const {thumbTravel} = this.geo;
-            const base = this.checked ? 1 : 0;
-            const ratio = base + (clientX - this.dragStartX) / thumbTravel;
-            // Rubber-band: allow slight overshoot, then compress
-            const clamped = Math.min(1, Math.max(0, ratio));
-            const overshoot = ratio < 0 ? -ratio : ratio > 1 ? ratio - 1 : 0;
-            this.thumbRatio = clamped + (ratio < 0 ? 1 : -1) * overshoot / 22;
+            if (!this.isPressed || this.isDestroyed) return;
+            const base     = this.checked ? 1 : 0;
+            const raw      = base + (clientX - this.dragStartX) / this.geo.thumbTravel;
+            const clamped  = Math.min(1, Math.max(0, raw));
+            // Rubber-band: allow slight overshoot, compress exponentially
+            const overshoot = raw < 0 ? -raw : raw > 1 ? raw - 1 : 0;
+            this.thumbRatio = clamped + (raw < 0 ? 1 : -1) * overshoot / 22;
             this.spXr.setTarget(this.thumbRatio);
             this._kick();
         };
 
+        // ── Up ───────────────────────────────────────────────────────────────
         const onUp = (clientX: number) => {
-            if (!this.isPressed) return;
+            if (!this.isPressed || this.isDestroyed) return;
             this.isPressed = false;
-            // Snap: small movement = toggle, large movement = follow position
-            const wasDrag = Math.abs(clientX - this.dragStartX) >= 4;
-            this.checked = wasDrag ? this.thumbRatio > 0.5 : !this.checked;
-            this.spSc.setTarget(this.cfg.thumbHeight / this.cfg.thumbWidth);
+            this.thumb.style.cursor = 'grab';
+            // A drag < 4px is treated as a tap → simple toggle
+            const wasDrag  = Math.abs(clientX - this.dragStartX) >= 4;
+            this.checked   = wasDrag ? this.thumbRatio > 0.5 : !this.checked;
+            this.spSc.setTarget(restScale);
             this.spBo.setTarget(1);
             this.spSr.setTarget(0.4);
             this.cfg.onChange(this.checked);
             this._kick();
         };
 
-        // Thumb — primary drag target
-        this.thumb.addEventListener('mousedown', e => {
+        // ── Pointer events with capture ───────────────────────────────────────
+        // Using pointer events + setPointerCapture instead of global
+        // mouse/touch listeners so events are scoped to this thumb and
+        // automatically cleaned up on pointercancel/pointerup.
+        this.thumb.addEventListener('pointerdown', e => {
             e.preventDefault();
             e.stopPropagation();
+            this.thumb.setPointerCapture(e.pointerId);
             onDown(e.clientX);
         });
-        this.thumb.addEventListener('touchstart', e => {
-            e.preventDefault();
-            e.stopPropagation();
-            onDown(e.touches[0].clientX);
-        }, {passive: false});
+        this.thumb.addEventListener('pointermove',   e => onMove(e.clientX));
+        this.thumb.addEventListener('pointerup',     e => onUp(e.clientX));
+        this.thumb.addEventListener('pointercancel', e => onUp(e.clientX));
 
-        window.addEventListener('mousemove', e => onMove(e.clientX));
-        window.addEventListener('touchmove', e => {
-            if (this.isPressed) {
-                e.stopPropagation();
-                onMove(e.touches[0].clientX);
-            }
-        }, {passive: false});
-        window.addEventListener('mouseup', e => onUp(e.clientX));
-        window.addEventListener('touchend', e => onUp(e.changedTouches?.[0]?.clientX ?? this.dragStartX));
-
+        // ── Track tap — toggle when clicking outside the thumb ────────────────
+        // Check composedPath so clicks that bubble up from track children
+        // (other than the thumb itself) are correctly handled
         this.track.addEventListener('click', e => {
-            if (e.target === this.track) {
+            if (this.isDestroyed || this.isPressed) return;
+            const path = e.composedPath() as EventTarget[];
+            // Only toggle if the click originated outside the thumb subtree
+            if (!path.includes(this.thumb)) {
                 this.checked = !this.checked;
+                this.cfg.onChange(this.checked);
                 this._kick();
             }
         });
 
         window.addEventListener('resize', () => {
-            this._computeGeo();
-            this._kick();
+            if (!this.isDestroyed) {
+                this._computeGeo();
+                this._kick();
+            }
         });
     }
 
-    // ── Public API ───────────────────────────────────────────────────────────
+    // ─────────────────────────────────────────────────────────────────────────
+    // § 6  PUBLIC API
+    // ─────────────────────────────────────────────────────────────────────────
 
-    /** Programmatically set checked state (animates). */
+    /** Animate to a new checked state programmatically. */
     setChecked(v: boolean): void {
+        if (this.isDestroyed) return;
         this.checked = v;
         this._kick();
     }
 
-    /** Read current checked state. */
-    isChecked(): boolean {
-        return this.checked;
+    /** Read the current checked state. */
+    isChecked(): boolean { return this.checked; }
+
+    /**
+     * Swap the icon markup at runtime without rebuilding the whole switch.
+     * Useful for async icon loading (e.g. swapping a spinner for a checkmark).
+     */
+    setIcons(iconOff: string, iconOn: string): void {
+        if (this.isDestroyed) return;
+        this.iconOffEl.innerHTML = iconOff;
+        this.iconOnEl.innerHTML  = iconOn;
     }
 
-    /** Tear down. */
+    /** Tear down: cancel rAF, remove SVG filter, clear DOM. */
     destroy(): void {
-        if (this.rafId) cancelAnimationFrame(this.rafId);
+        this.isDestroyed = true;
+        if (this.rafId) { cancelAnimationFrame(this.rafId); this.rafId = null; }
         this.filter?.svg.remove();
         this.container.innerHTML = '';
     }

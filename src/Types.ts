@@ -180,58 +180,64 @@ export interface SliderOptions {
 export interface SwitchOptions {
     // ── Glass optics ────────────────────────────────────────────────────────
     /** Default: 1.5 */
-    refractiveIndex?: number;
+    refractiveIndex: number;
     /** Default: 47 */
-    glassThickness?: number;
+    glassThickness: number;
     /** Default: 19 */
-    bezelWidth?: number;
+    bezelWidth: number;
     /** Default: 1.2 */
-    refractionScale?: number;
+    refractionScale: number;
     /** Default: 0.5 */
-    specularAlpha?: number;
+    specularAlpha: number;
 
     // ── Track geometry ───────────────────────────────────────────────────────
     /** Track outer width in px. Default: 160 */
-    trackWidth?: number;
+    trackWidth: number;
     /** Track outer height in px. Default: 67 */
-    trackHeight?: number;
+    trackHeight: number;
 
     // ── Thumb geometry ───────────────────────────────────────────────────────
     /** Thumb width in px. Default: 146 */
-    thumbWidth?: number;
+    thumbWidth: number;
     /** Thumb height in px. Default: 92 */
-    thumbHeight?: number;
+    thumbHeight: number;
     /** Thumb corner radius in px. Default: 46 */
-    thumbRadius?: number;
+    thumbRadius: number;
 
-    // ── Colours ──────────────────────────────────────────────────────────────
-    /** Track tint when OFF. Default: rgba(255,255,255,0.05) */
-    colorOff?: string;
+
     /**
-     * Track tint [r,g,b] when ON, rendered at variable alpha.
-     * Default: [139,92,246] (violet)
+     * [R, G, B, A] for the OFF track tint.
+     * Default: [255, 255, 255, 0.05]
      */
-    colorOn?: [number, number, number];
-
-    // ── Initial state ────────────────────────────────────────────────────────
-    /** Whether the switch starts checked. Default: true */
-    checked?: boolean;
-    // ── Label / logo ─────────────────────────────────────────────────────────
+    colorOff: [number, number, number, number];
     /**
-     * Text string or HTMLElement (SVG, img, etc.) to render
-     * centred inside the switch track.
-     * The label is purely decorative — pointer events pass through it.
+     * [R, G, B, A] for the ON track tint.
+     * Default: [139, 92, 246, 0.5]
      */
-    label?: string | HTMLElement;
-    /** Label colour when switch is OFF. Default: 'rgba(255,255,255,0.35)' */
-    labelColorOff?: string;
-    /** Label colour when switch is ON.  Default: 'rgba(255,255,255,0.90)' */
-    labelColorOn?:  string;
-    /** CSS font shorthand for text labels. Default: '600 13px/1 Inter,sans-serif' */
-    labelFont?: string;
-
+    colorOn:  [number, number, number, number];
+    checked: boolean;
+    /**
+     * HTML string for the OFF-state icon rendered on the thumb.
+     * Accepts any inline HTML: SVG markup, a Font Awesome <i> tag,
+     * a Lucide <svg>, an emoji, plain text, etc.
+     *
+     * @example '<i class="fa-solid fa-moon"></i>'
+     * @example '<svg viewBox="0 0 24 24">…</svg>'
+     */
+    iconOff: string;
+    /**
+     * HTML string for the ON-state icon rendered on the thumb.
+     * Same format as iconOff.
+     *
+     * @example '<i class="fa-solid fa-sun"></i>'
+     */
+    iconOn:      string;
+    iconColorOff: string;
+    iconColorOn:  string;
+    /** Size of the icon in px. Applied as font-size (works for both font icons and SVGs via em). */
+    iconSize: number;
     // ── Callbacks ────────────────────────────────────────────────────────────
     /** Fired when the switch commits to a new checked state on release. */
-    onChange?: (checked: boolean) => void;
+    onChange: (checked: boolean) => void;
 }
 
