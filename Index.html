@@ -1077,9 +1077,26 @@
 
         </div>
 
-        <div class="ps-head" style="margin-top:2px">Thumb</div>
+        <div class="ps-head" style="margin-top:2px">Thumb Icons</div>
         <div class="ps-body">
+            <div class="ctrl">
+                <div class="ctrl-row"><span class="ctrl-label">Icon OFF (SVG/HTML)</span></div>
+                <input type="text" id="sw-iconOff" placeholder="<svg>...</svg>">
+            </div>
+            <div class="ctrl">
+                <div class="ctrl-row"><span class="ctrl-label">Icon ON (SVG/HTML)</span></div>
+                <input type="text" id="sw-iconOn" placeholder="<svg>...</svg>">
+            </div>
+            <div class="ctrl">
+                <div class="ctrl-row"><span class="ctrl-label">Icon Colour OFF</span><input type="color" id="sw-iconColorOff" value="#8A8A98"></div>
+            </div>
+            <div class="ctrl">
+                <div class="ctrl-row"><span class="ctrl-label">Icon Colour ON</span><input type="color" id="sw-iconColorOn" value="#10B981"></div>
+            </div>
+        </div>
 
+        <div class="ps-head" style="margin-top:2px">Thumb Dimensions</div>
+        <div class="ps-body">
             <div class="ctrl" id="sw-thumbWidth" data-min="50" data-max="240" data-step="2" data-default="146">
                 <div class="ctrl-row"><span class="ctrl-label">Width px</span><span class="ctrl-val">146</span></div>
                 <input type="range" min="50" max="240" step="2" value="146">
@@ -1092,34 +1109,10 @@
                 <div class="ctrl-row"><span class="ctrl-label">Radius px</span><span class="ctrl-val">46</span></div>
                 <input type="range" min="0" max="70" step="1" value="46">
             </div>
-
-        </div>
-
-        <div class="ps-head" style="margin-top:2px">Label / Logo</div>
-        <div class="ps-body">
-
-            <div class="ctrl">
-                <div class="ctrl-row"><span class="ctrl-label">Label text</span></div>
-                <input type="text" id="sw-label" placeholder="e.g.  Wi-Fi  or leave empty" value="">
-            </div>
-            <div class="ctrl">
-                <div class="ctrl-row">
-                    <span class="ctrl-label">Colour OFF</span>
-                    <input type="color" id="sw-labelColorOff" value="#555577">
-                </div>
-            </div>
-            <div class="ctrl">
-                <div class="ctrl-row">
-                    <span class="ctrl-label">Colour ON</span>
-                    <input type="color" id="sw-labelColorOn" value="#e8e8ff">
-                </div>
-            </div>
-
             <div class="ctrl-row" style="margin-top:4px">
                 <span class="ctrl-label">Start checked</span>
                 <div class="ctrl-toggle on" id="sw-checked"></div>
             </div>
-
         </div>
 
         <div class="ps-head" style="margin-top:2px">Glass Optics</div>
@@ -1155,7 +1148,7 @@
         <button class="copy-code" id="copy-code">Copy to clipboard</button>
     </div>
 </div>
-
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <script type="module">
     import { LiquidGlass } from './src/index.js';
 
@@ -1167,6 +1160,13 @@
     let sliderInstance   = null;
     let switchInstance   = null;
     let activeTab        = 'surface';
+    let orbEnabled    = false;
+
+    const defaultIconOff = '<span><i class="fa-solid fa-moon" style="font-size: 28px;"></i> Dark Mode</span>';
+    const defaultIconOn  = '<span><i class="fa-solid fa-sun" style="font-size: 28px;"></i> Light Mode</span>';
+
+    document.getElementById('sw-iconOff').value = defaultIconOff;
+    document.getElementById('sw-iconOn').value = defaultIconOn;
 
     // Accumulated options for each component type
     const sliderOpts = {
@@ -1182,9 +1182,13 @@
     const switchOpts = {
         trackWidth: 160, trackHeight: 67,
         thumbWidth: 146, thumbHeight: 92, thumbRadius: 46,
-        colorOn: [139, 92, 246],
-        checked: true, label: '',
-        labelColorOff: 'rgba(80,80,120,1)', labelColorOn: 'rgba(232,232,255,1)',
+        colorOff: [255, 255, 255, 0.05],
+        colorOn: [16, 185, 129, 0.4],
+        checked: true,
+        iconOff: defaultIconOff,
+        iconOn: defaultIconOn,
+        iconColorOff: '#8A8A98',
+        iconColorOn: '#10B981',
         refractiveIndex: 1.5, glassThickness: 47, bezelWidth: 19,
         onChange: v => log(`switch → ${v ? 'ON' : 'OFF'}`, 'commit'),
     };
@@ -1261,13 +1265,12 @@
         const hex = document.getElementById('sw-colorOn').value;
         const rgb = hexToRgbArr(hex);
 
-        const label = document.getElementById('sw-label').value.trim() || undefined;
 
 
         switchInstance = LiquidGlass.createSwitch(container, {
             ...switchOpts,
-            colorOn:  rgb,
-            label:    label,     });
+            colorOn:  [...rgb, 0.5],
+            colorOff:    [225,225,225,0.05],     });
     }
 
     // ═══════════════════════════════════════════════════════════════
@@ -1315,7 +1318,6 @@
     // PANEL CONTROLS — wire every range/toggle/select generically
     // ═══════════════════════════════════════════════════════════════
 
-    let orbEnabled = true;
     // Debounce timer for rebuilds that are expensive
     const rebuildTimers = {};
     function debounce(key, fn, delay = 320) {
@@ -1442,21 +1444,23 @@
     wireSwitchRange('sw-glassThickness',  'glassThickness');
     wireSwitchRange('sw-bezelWidth',      'bezelWidth');
 
+    document.getElementById('sw-iconOff').addEventListener('input', function() {
+        switchOpts.iconOff = this.value;
+        debounce('switch', initSwitch, 500);
+    });
+    document.getElementById('sw-iconOn').addEventListener('input', function() {
+        switchOpts.iconOn = this.value;
+        debounce('switch', initSwitch, 500);
+    });
+    document.getElementById('sw-iconColorOff').addEventListener('input', function() {
+        switchOpts.iconColorOff = this.value;
+        debounce('switch', initSwitch, 300);
+    });
+    document.getElementById('sw-iconColorOn').addEventListener('input', function() {
+        switchOpts.iconColorOn = this.value;
+        debounce('switch', initSwitch, 300);
+    });
     document.getElementById('sw-colorOn').addEventListener('input', () => debounce('switch', initSwitch, 300));
-    document.getElementById('sw-label').addEventListener('input', () => debounce('switch', initSwitch, 500));
-    document.getElementById('sw-labelColorOff').addEventListener('input', function() {
-        switchOpts.labelColorOff = hexToRgba(this.value, 1);
-        debounce('switch', initSwitch, 300);
-    });
-    document.getElementById('sw-labelColorOn').addEventListener('input', function() {
-        switchOpts.labelColorOn = hexToRgba(this.value, 1);
-        debounce('switch', initSwitch, 300);
-    });
-    document.getElementById('sw-checked').addEventListener('click', function() {
-        this.classList.toggle('on');
-        switchOpts.checked = this.classList.contains('on');
-        debounce('switch', initSwitch, 200);
-    });
 
     // ═══════════════════════════════════════════════════════════════
     // TAB NAVIGATION
@@ -1545,8 +1549,10 @@
   thumbRadius:   ${switchOpts.thumbRadius},
   colorOn:       [${rgb.join(', ')}],
   checked:       ${switchOpts.checked},${lbl ? `\n  label:         '${lbl}',` : ''}
-  labelColorOff: '${switchOpts.labelColorOff}',
-  labelColorOn:  '${switchOpts.labelColorOn}',
+    iconOff:       ${switchOpts.iconOff},
+    iconOn:        ${switchOpts.iconOn},
+    iconColorOff:   '${switchOpts.iconColorOff}',
+    iconColorOn:    '${switchOpts.iconColorOn}',
   refractiveIndex: ${switchOpts.refractiveIndex},
   glassThickness:  ${switchOpts.glassThickness},
   bezelWidth:      ${switchOpts.bezelWidth},
