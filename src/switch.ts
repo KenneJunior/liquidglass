@@ -33,7 +33,14 @@ import { buildGlassFilterAsync } from "./filters.ts";
  *  ```
  */
 export class LiquidGlassSwitch {
-    private readonly cfg: Required<SwitchOptions>;
+    private readonly cfg: Required<SwitchOptions> & {
+        iconOff: string;
+        iconOn: string;
+        iconColorOff: string;
+        iconColorOn: string;
+        colorOff: number[];
+        colorOn: number[];
+    };
 
     // ── State ────────────────────────────────────────────────────────────────
     private checked: boolean;
@@ -55,7 +62,8 @@ export class LiquidGlassSwitch {
     private thumb!: HTMLElement;
     private thumbInner!: HTMLElement;
     private cloneInner!: HTMLElement;
-    private _labelEl:    HTMLElement | null = null;
+    private iconOffEl!: HTMLElement;
+    private iconOnEl!: HTMLElement;
 
     // ── Filter ───────────────────────────────────────────────────────────────
     private filter?: FilterCacheResult;
@@ -63,10 +71,9 @@ export class LiquidGlassSwitch {
     private maxDisp = 0;
     private rafId: number | null = null;
 
-    // ── Geometry cache (computed once after DOM is ready) ────────────────────
     private geo!: {
-        thumbTravel: number;  // px the thumb centre can travel
-        restOffset: number;  // px offset at scale rest that keeps thumb centred
+        thumbTravel: number;
+        restOffset: number;
     };
 
     private static get useBackdrop(): boolean {
@@ -77,7 +84,7 @@ export class LiquidGlassSwitch {
 
     constructor(
         private readonly container: HTMLElement,
-        options: SwitchOptions = {},
+        options: any = {},
     ) {
         this.cfg = {
             refractiveIndex: options.refractiveIndex ?? 1.5,
@@ -90,15 +97,18 @@ export class LiquidGlassSwitch {
             thumbWidth:      options.thumbWidth       ?? 146,
             thumbHeight:     options.thumbHeight      ?? 92,
             thumbRadius:     options.thumbRadius      ?? 46,
-            colorOff:        options.colorOff         ?? 'rgba(255,255,255,0.05)',
-            colorOn:         options.colorOn          ?? [139, 92, 246],
+            // Colors must be [R, G, B, A] arrays for smooth physics interpolation
+            colorOff:        options.colorOff         ?? [255, 255, 255, 0.05],
+            colorOn:         options.colorOn          ?? [139, 92, 246, 0.5],
             checked:         options.checked          ?? true,
-            label:           options.label            ?? undefined!,
-            labelColorOff:   options.labelColorOff    ?? 'rgba(255,255,255,0.35)',
-            labelColorOn:    options.labelColorOn     ?? 'rgba(255,255,255,0.90)',
-            labelFont:       options.labelFont        ?? '600 13px/1 Inter,sans-serif',
+            // New Icon Properties
+            iconOff:         options.iconOff          ?? '',
+            iconOn:          options.iconOn           ?? '',
+            iconColorOff:    options.iconColorOff     ?? '#8A8A98',
+            iconColorOn:     options.iconColorOn      ?? '#10B981', // Default emerald green
             onChange:        options.onChange         ?? (() => {}),
-        };
+        } as any;
+
         this.checked      = this.cfg.checked;
         this.thumbRatio   = this.checked ? 1 : 0;
 
@@ -110,7 +120,7 @@ export class LiquidGlassSwitch {
         this._computeGeo();
         this._buildFilter();
         this._bindEvents();
-        this._kick(); // paint the initial position
+        this._kick();
     }
 
     // ── DOM construction ─────────────────────────────────────────────────────
@@ -123,7 +133,6 @@ export class LiquidGlassSwitch {
           <div class="lg-switch-track" style="
             display:inline-block; position:relative;
             width:${trackWidth}px; height:${trackHeight}px;
-            background-color:rgba(255,255,255,0.05);
             border-radius:${trackHeight}px;
             cursor:pointer;
             box-shadow:inset 0 2px 10px rgba(0,0,0,0.5);
@@ -144,7 +153,6 @@ export class LiquidGlassSwitch {
               will-change:transform,left,background-color,box-shadow;
               z-index:10;              
             ">
-
               <div class="lg-switch-thumb-clone" style="
                 position:absolute; top:0; left:0; width:100%; height:100%;
                 overflow:hidden; border-radius:inherit; z-index:1; opacity:0;
@@ -159,6 +167,19 @@ export class LiquidGlassSwitch {
                 position:absolute; top:0; left:0; width:100%; height:100%;
                 border-radius:inherit; z-index:3; pointer-events:none;
               "></div>
+              
+              <div class="lg-switch-icons" style="
+                position:absolute; inset:0; display:flex; align-items:center; justify-content:center; 
+                z-index:20; pointer-events:none;
+              ">
+                <div class="lg-icon-off" style="position:absolute; display:flex; align-items:center; justify-content:center; color:${this.cfg.iconColorOff};">
+                  ${this.cfg.iconOff}
+                </div>
+                <div class="lg-icon-on" style="position:absolute; display:flex; align-items:center; justify-content:center; color:${this.cfg.iconColorOn};">
+                  ${this.cfg.iconOn}
+                </div>
+              </div>
+
               <svg style="width:0;height:0;position:absolute;" aria-hidden="true">
                 <defs></defs>
               </svg>
@@ -169,36 +190,8 @@ export class LiquidGlassSwitch {
         this.thumb      = this.container.querySelector('.lg-switch-thumb')!;
         this.thumbInner = this.container.querySelector('.lg-switch-thumb-inner')!;
         this.cloneInner = this.container.querySelector('.lg-switch-thumb-clone-inner')!;
-
-        // ── Label / logo ─────────────────────────────────────────────────────
-        // Injected after innerHTML so it lands inside .lg-switch-track but
-        // above the thumb in z-order. pointer-events:none so it never
-        // intercepts drag events.
-        const { label, labelColorOff, labelColorOn, labelFont, checked } = this.cfg;
-        if (label !== undefined && label !== null) {
-            const wrapper = document.createElement('div');
-            wrapper.className = 'lg-switch-label';
-            Object.assign(wrapper.style, {
-                position:      'absolute',
-                inset:         '0',
-                display:       'flex',
-                alignItems:    'center',
-                justifyContent:'center',
-                pointerEvents: 'none',
-                zIndex:        '5',
-                font:          labelFont,
-                color:         checked ? labelColorOn : labelColorOff,
-                transition:    'color 300ms ease',
-                userSelect:    'none',
-            });
-            if (typeof label === 'string') {
-                wrapper.textContent = label;
-            } else {
-                wrapper.appendChild(label);
-            }
-            this.track.appendChild(wrapper);
-            this._labelEl = wrapper;
-        }
+        this.iconOffEl  = this.container.querySelector('.lg-icon-off')!;
+        this.iconOnEl   = this.container.querySelector('.lg-icon-on')!;
     }
     /** Computes geometry constants that depend on final CSS layout. */
     private _computeGeo(): void {
@@ -295,15 +288,26 @@ export class LiquidGlassSwitch {
         const cloneEl = this.thumb.querySelector('.lg-switch-thumb-clone') as HTMLElement | null;
         if (cloneEl) cloneEl.style.opacity = String(1 - bo);
 
-        // Track colour interpolation: off colour → on colour
-        const [or, og, ob] = this.cfg.colorOn;
-        const r = Math.round(255 + (or - 255) * tc);
-        const g = Math.round(255 + (og - 255) * tc);
-        const b = Math.round(255 + (ob - 255) * tc);
-        const a = 0.05 + 0.45 * tc;
+        // --- 1. Track Color Interpolation ---
+        const [offR, offG, offB, offA = 0.05] = this.cfg.colorOff;
+        const [onR, onG, onB, onA = 0.5] = this.cfg.colorOn;
+
+        const r = Math.round(offR + (onR - offR) * tc);
+        const g = Math.round(offG + (onG - offG) * tc);
+        const b = Math.round(offB + (onB - offB) * tc);
+        const a = offA + (onA - offA) * tc;
+
         this.track.style.backgroundColor = `rgba(${r},${g},${b},${a})`;
 
-        // Displacement scale
+        // --- 2. Icon Cross-Fade & Scale Physics ---
+        if (this.iconOffEl && this.iconOnEl) {
+            this.iconOffEl.style.opacity = String(1 - tc);
+            this.iconOnEl.style.opacity = String(tc);
+            // Slight pop-in effect aligned with the spring bounce
+            this.iconOffEl.style.transform = `scale(${0.8 + 0.2 * (1 - tc)})`;
+            this.iconOnEl.style.transform = `scale(${0.8 + 0.2 * tc})`;
+        }
+
         if (this.filter?.mapElG) {
             const scale = (this.maxDisp * this.cfg.refractionScale * sr).toFixed(3);
             this.filter.mapElR?.setAttribute('scale', scale);
@@ -391,7 +395,6 @@ export class LiquidGlassSwitch {
         window.addEventListener('mouseup', e => onUp(e.clientX));
         window.addEventListener('touchend', e => onUp(e.changedTouches?.[0]?.clientX ?? this.dragStartX));
 
-        // Track — click anywhere to toggle
         this.track.addEventListener('click', e => {
             if (e.target === this.track) {
                 this.checked = !this.checked;

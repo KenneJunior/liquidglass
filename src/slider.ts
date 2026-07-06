@@ -57,6 +57,7 @@ export class LiquidGlassSlider {
     private labelEl: HTMLElement|null = null;
     /** The displayed integer/decimal from the previous frame — drives drum direction */
     private prevDisplayValue = -1;
+    private prevDisplayText='';
 
     // ── Filter ───────────────────────────────────────────────────────────────
     private filter?: FilterCacheResult;
@@ -128,29 +129,19 @@ export class LiquidGlassSlider {
 
         this.container.style.position = 'relative';
 
-        // ── Label element ────────────────────────────────────────────────────
-        // Built before innerHTML so we can reference it after injection.
-        // The drum-roll container holds two spans (outgoing + incoming) and
-        // clips them with overflow:hidden. The font-size drives the cell height.
         const labelHTML = labelPosition ? `
           <div class="lg-slider-label" aria-live="polite" aria-atomic="true" style="
             position:absolute; pointer-events:none;
             font:${labelFont}; color:${labelColor};
             display:flex; align-items:center; justify-content:center;
-            overflow:hidden; line-height:1;
+            overflow:visible; line-height:1;
             white-space:nowrap; user-select:none;
             ${labelPosition === 'top'    ? `bottom:calc(100% + ${labelGap}px); left:0; width:100%;` : ''}
             ${labelPosition === 'bottom' ? `top:calc(100% + ${labelGap}px);    left:0; width:100%;` : ''}
             ${labelPosition === 'left'   ? `right:calc(100% + ${labelGap}px);  top:50%; transform:translateY(-50%);` : ''}
             ${labelPosition === 'right'  ? `left:calc(100% + ${labelGap}px);   top:50%; transform:translateY(-50%);` : ''}
           ">
-            <div class="lg-slider-drum" style="
-              position:relative; overflow:hidden;
-              height:1.2em; display:flex; align-items:center;
-            ">
-              <span class="lg-drum-a" style="position:absolute;width:100%;text-align:center;"></span>
-              <span class="lg-drum-b" style="position:absolute;width:100%;text-align:center;"></span>
-            </div>
+            <div class="lg-slider-digits" style="display:flex; overflow:hidden; height:1.2em;"></div>
           </div>` : '';
 
         this.container.innerHTML = `
@@ -203,7 +194,6 @@ export class LiquidGlassSlider {
             </svg>
           </div>`;
 
-        // Make container tall enough for bottom label
         this.container.style.width  = `${trackWidth}px`;
         this.container.style.height = `${thumbHeight}px`;
 
@@ -213,14 +203,6 @@ export class LiquidGlassSlider {
         this.thumbInner = this.container.querySelector('.lg-slider-thumb-inner')!;
         this.cloneInner = this.container.querySelector('.lg-slider-thumb-clone-inner')!;
         this.labelEl    = this.container.querySelector('.lg-slider-label');
-
-        // Seed the drum with the initial value (no animation on first paint)
-        if (this.labelEl) {
-            const drumA = this.labelEl.querySelector('.lg-drum-a') as HTMLElement;
-            drumA.textContent = this._formatValue(this.value);
-            drumA.style.transform = 'translateY(0)';
-            this.prevDisplayValue = this.value;
-        }
     }
     // ── Filter construction ──────────────────────────────────────────────────
 
@@ -234,7 +216,6 @@ export class LiquidGlassSlider {
             glassThickness, bezelWidth, refractiveIndex,
             refractionScale, specularAlpha } = this.cfg;
 
-        // Synthesise a minimal opts object compatible with buildGlassFilterAsync
         const opts = {
             glassThickness, bezelWidth, refractiveIndex,
             refractionScale, specularAlpha,
@@ -243,8 +224,6 @@ export class LiquidGlassSlider {
             aberration: 0, magneticPull: 0,
         } as Required<Omit<LiquidGlassOptions, 'enableOrb'|'orbColor'|'enableMobileSupport'>>;
 
-        // Temporarily fake el.getBoundingClientRect so buildGlassFilterAsync
-        // reads the exact thumb dimensions, not the container's.
         const fakeEl = Object.assign(document.createElement('div'), {
             style: { borderRadius: `${R}px` },
             getBoundingClientRect: () => ({
@@ -258,7 +237,6 @@ export class LiquidGlassSlider {
         this.maxDisp = this.filter.maxDisp;
         this.filterId = this.filter.id;
 
-        // Wire the filter to the SVG element already in the DOM
         const svgDefs = this.thumb.querySelector('svg defs')!;
         svgDefs.parentElement!.replaceWith(this.filter.svg);
 
@@ -268,7 +246,6 @@ export class LiquidGlassSlider {
             (this.thumbInner.style as any).webkitBackdropFilter = bf;
         } else {
             this.cloneInner.style.filter = `url(#${this.filterId})`;
-            // Clone-world background must mirror the slider's parent scene
             this.cloneInner.style.background =
                 getComputedStyle(this.container.parentElement || document.body).background;
         }
@@ -276,7 +253,6 @@ export class LiquidGlassSlider {
         // Kick the animation loop so the initial scale renders immediately
         this._kick();
     }
-
     // ── Label helpers ────────────────────────────────────────────────────────
 
     /** Returns the display string for a given value. */
@@ -295,44 +271,78 @@ export class LiquidGlassSlider {
      */
     private _drumActive: 'a' | 'b' = 'a';
 
-    private _rollDrum(newText: string, direction: number): void {
+    /**
+     * Odometer-style character diffing and animation.
+     */
+    private _updateDigits(newText: string, oldText: string, direction: number): void {
         if (!this.labelEl) return;
-        const drum   = this.labelEl.querySelector('.lg-slider-drum') as HTMLElement;
-        const spanA  = drum.querySelector('.lg-drum-a') as HTMLElement;
-        const spanB  = drum.querySelector('.lg-drum-b') as HTMLElement;
+        const container = this.labelEl.querySelector('.lg-slider-digits') as HTMLElement;
 
-        const incoming = this._drumActive === 'a' ? spanB : spanA;
-        const outgoing = this._drumActive === 'a' ? spanA : spanB;
+        // 1. Handle structure rebuild if length changes
+        if (newText.length !== oldText.length || container.children.length === 0) {
+            this._rebuildDigitDrums(container, newText);
+            return;
+        }
 
-        // Duration in ms — snappy but readable
-        const DUR  = 140;
-        const EASE = 'cubic-bezier(0.16,1,0.3,1)';
-
-        // Reset incoming: position it off-screen in the entry direction
-        const inStart  = direction > 0 ? '100%'  : '-100%';
-        const outEnd   = direction > 0 ? '-100%' : '100%';
-
-        incoming.textContent = newText;
-        incoming.style.transition = 'none';
-        incoming.style.transform  = `translateY(${inStart})`;
-        incoming.style.opacity    = '0';
-
-        // Force a reflow so the browser registers the starting position
-        void (incoming as any).offsetWidth;
-
-        incoming.style.transition = `transform ${DUR}ms ${EASE}, opacity ${DUR * 0.5}ms ease`;
-        incoming.style.transform  = 'translateY(0)';
-        incoming.style.opacity    = '1';
-
-        outgoing.style.transition = `transform ${DUR}ms ${EASE}, opacity ${DUR * 0.5}ms ease`;
-        outgoing.style.transform  = `translateY(${outEnd})`;
-        outgoing.style.opacity    = '0';
-
-        // Swap active slot
-        this._drumActive = this._drumActive === 'a' ? 'b' : 'a';
+        // 2. Animate only changing characters
+        const drums = container.children;
+        for (let i = 0; i < newText.length; i++) {
+            if (newText[i] !== oldText[i]) {
+                this._animateDrum(drums[i] as HTMLElement, newText[i], direction);
+            }
+        }
     }
-    // ── Position / clone sync ────────────────────────────────────────────────
 
+    private _rebuildDigitDrums(container: HTMLElement, text: string): void {
+        container.innerHTML = '';
+        for (const char of text) {
+            const drum = document.createElement('div');
+            drum.className = 'lg-digit-drum';
+            drum.dataset.active = 'a';
+            drum.style.cssText = 'position:relative; display:flex; align-items:center; justify-content:center;';
+            drum.innerHTML = `
+                <span class="lg-ghost" style="visibility:hidden; height:0; overflow:hidden;">${char}</span>
+                <span class="lg-a" style="position:absolute; width:100%; text-align:center;">${char}</span>
+                <span class="lg-b" style="position:absolute; width:100%; text-align:center; opacity:0; transform:translateY(100%);"></span>
+            `;
+            container.appendChild(drum);
+        }
+    }
+
+    private _animateDrum(drum: HTMLElement, char: string, direction: number): void {
+        const DUR = 280;
+        const EASE = 'cubic-bezier(0.16, 1, 0.3, 1)';
+
+        const activeState = drum.dataset.active || 'a';
+        const spanA = drum.querySelector('.lg-a') as HTMLElement;
+        const spanB = drum.querySelector('.lg-b') as HTMLElement;
+        const ghost = drum.querySelector('.lg-ghost') as HTMLElement;
+
+        const incoming = activeState === 'a' ? spanB : spanA;
+        const outgoing = activeState === 'a' ? spanA : spanB;
+
+        ghost.textContent = char;
+        incoming.textContent = char;
+
+        // Reset incoming state
+        incoming.style.transition = 'none';
+        incoming.style.transform = direction > 0 ? 'translateY(100%)' : 'translateY(-100%)';
+        incoming.style.opacity = '0';
+
+        void incoming.offsetWidth; // Layout flush
+
+        // Apply smooth transition
+        const style = `transform ${DUR}ms ${EASE}, opacity ${DUR * 0.7}ms ease`;
+        incoming.style.transition = style;
+        incoming.style.transform = 'translateY(0)';
+        incoming.style.opacity = '1';
+
+        outgoing.style.transition = style;
+        outgoing.style.transform = direction > 0 ? 'translateY(-100%)' : 'translateY(100%)';
+        outgoing.style.opacity = '0';
+
+        drum.dataset.active = activeState === 'a' ? 'b' : 'a';
+    }
     /**
      * Positions the thumb and fill based on current value.
      * Also repositions the clone-world inner so the background
@@ -355,29 +365,26 @@ export class LiquidGlassSlider {
 
         this.cfg.onChange(this.value);
 
-        // ── Sticky label X positioning ───────────────────────────────────────
         if (this.labelEl && labelSticky &&
             (labelPosition === 'top' || labelPosition === 'bottom')) {
-            // Centre the label over the thumb
             const thumbCentreX = tx + thumbWidth / 2;
             this.labelEl.style.width     = 'auto';
             this.labelEl.style.left      = `${thumbCentreX}px`;
             this.labelEl.style.transform = 'translateX(-50%)';
         }
 
-        // ── Drum roll ────────────────────────────────────────────────────────
         if (this.labelEl) {
             const newText   = this._formatValue(this.value);
             const newNum    = parseFloat(newText);
             const direction = newNum - this.prevDisplayValue;
 
-            if (direction !== 0) {
-                this._rollDrum(newText, direction);
+            if (newText !== this.prevDisplayText) {
+                this._updateDigits(newText, this.prevDisplayText, direction);
+                this.prevDisplayText = newText;
                 this.prevDisplayValue = newNum;
             }
         }
 
-        // ── Clone-world repositioning ────────────────────────────────────────
         if (!LiquidGlassSlider.useBackdrop) {
             const aR  = this.container.getBoundingClientRect();
             const cl  = (aR.width - trackWidth) / 2;
