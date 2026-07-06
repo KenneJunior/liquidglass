@@ -1,14 +1,19 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Liquid Glass — Dev Playground</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
     <style>
         /* ── Reset & Base Layout ───────────────────────────────── */
-        *, *::before, *::after {
+        *,
+        *::before,
+        *::after {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
@@ -16,44 +21,44 @@
 
         :root {
             /* Layout Dimensions */
-            --panel-w:   340px;
-            --topbar-h:  56px;
+            --panel-w: 340px;
+            --topbar-h: 56px;
             --console-h: 40px;
 
             /* Premium Color Palette */
             --bg: rgba(5, 5, 10, 0);
-            --surface:       rgba(255, 255, 255, 0.03);
+            --surface: rgba(255, 255, 255, 0.03);
             --surface-hover: rgba(255, 255, 255, 0.06);
-            --border:        rgba(255, 255, 255, 0.08);
-            --border-hi:     rgba(255, 255, 255, 0.15);
-            --text:          #EDEDF0;
-            --muted:         #8A8A98;
-            --accent:        #818CF8;
-            --accent-lo:     rgba(129, 140, 248, 0.15);
-            --radius:        8px;
+            --border: rgba(255, 255, 255, 0.08);
+            --border-hi: rgba(255, 255, 255, 0.15);
+            --text: #EDEDF0;
+            --muted: #8A8A98;
+            --accent: #818CF8;
+            --accent-lo: rgba(129, 140, 248, 0.15);
+            --radius: 8px;
 
             /* Typography & Physics */
-            --font:          'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            --mono:          'JetBrains Mono', ui-monospace, monospace;
-            --ease-spring:   cubic-bezier(0.16, 1, 0.3, 1);
+            --font: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            --mono: 'JetBrains Mono', ui-monospace, monospace;
+            --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
 
             /* Liquid Glass Engine Defaults */
             --lg-refractive-index: 1.9;
-            --lg-glass-thickness:  120;
-            --lg-bezel-width:      40;
+            --lg-glass-thickness: 120;
+            --lg-bezel-width: 40;
             --lg-refraction-scale: 1.6;
-            --lg-max-tilt:         8;
-            --lg-blur:             0;
-            --lg-saturation:       2.0;
-            --lg-brightness:       0.5;
-            --lg-aberration:       0.2;
-            --lg-magnetic-pull:    5;
+            --lg-max-tilt: 8;
+            --lg-blur: 0;
+            --lg-saturation: 2.0;
+            --lg-brightness: 0.5;
+            --lg-aberration: 0.2;
+            --lg-magnetic-pull: 5;
         }
 
         body {
             font-family: var(--font);
             background: radial-gradient(circle at 50% 0%, rgba(15, 15, 25, 0.4) 0%, var(--bg) 100%),
-            url('../liquidglass/src/wallpaper.jpg') center/cover fixed;
+                url('../liquidglass/src/wallpaper.jpg') center/cover fixed;
             background-color: var(--bg);
             color: var(--text);
 
@@ -65,8 +70,8 @@
             grid-template-columns: minmax(0, 1fr) var(--panel-w);
             grid-template-rows: var(--topbar-h) minmax(0, 1fr);
             grid-template-areas:
-        "topbar topbar"
-        "canvas panel";
+                "topbar topbar"
+                "canvas panel";
             overflow: hidden;
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
@@ -130,12 +135,16 @@
             align-items: center;
             gap: 10px;
         }
+
         #topbar .logo svg {
             width: 20px;
             height: 20px;
             filter: drop-shadow(0 0 8px var(--accent-lo));
         }
-        #topbar .sep { flex: 1; }
+
+        #topbar .sep {
+            flex: 1;
+        }
 
         .tab-bar {
             display: flex;
@@ -144,7 +153,7 @@
             border: 1px solid var(--border);
             border-radius: 100px;
             padding: 4px;
-            box-shadow: inset 0 1px 3px rgba(0,0,0,0.3);
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3);
         }
 
         .tab-btn {
@@ -158,14 +167,16 @@
             letter-spacing: 0.01em;
             transition: all 0.2s var(--ease-spring);
         }
+
         .tab-btn:hover:not(.active) {
             color: var(--text);
             background: var(--surface);
         }
+
         .tab-btn.active {
             background: var(--surface-hover);
             color: #FFF;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.2), inset 0 1px 1px rgba(255,255,255,0.1);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2), inset 0 1px 1px rgba(255, 255, 255, 0.1);
         }
 
         .topbar-btn {
@@ -180,15 +191,24 @@
             font: 500 12px/1 var(--font);
             cursor: pointer;
             transition: all 0.2s ease;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
         }
+
         .topbar-btn:hover {
             border-color: var(--border-hi);
             background: var(--surface-hover);
             transform: translateY(-1px);
         }
-        .topbar-btn:active { transform: translateY(0); }
-        .topbar-btn svg { width: 14px; height: 14px; opacity: 0.7; }
+
+        .topbar-btn:active {
+            transform: translateY(0);
+        }
+
+        .topbar-btn svg {
+            width: 14px;
+            height: 14px;
+            opacity: 0.7;
+        }
 
         /* ── Interactive Viewport Canvas ───────────────────────── */
         #canvas {
@@ -214,7 +234,7 @@
             align-self: flex-start;
             margin-left: 24px;
             padding: 4px 10px;
-            background: rgba(0,0,0,0.4);
+            background: rgba(0, 0, 0, 0.4);
             border-radius: 100px;
             border: 1px solid var(--border);
         }
@@ -229,10 +249,12 @@
         }
 
         /* ── Optics Card Geometry ───────────────────────────────── */
-        .my-glass-card, .my-glass-card--circle, .my-glass-card--square {
+        .my-glass-card,
+        .my-glass-card--circle,
+        .my-glass-card--square {
             background: rgba(255, 255, 255, 0.03);
             border: 1px solid rgba(255, 255, 255, 0.15);
-            box-shadow: 0 24px 40px rgba(0,0,0,0.4), inset 0 1px 1px rgba(255,255,255,0.1);
+            box-shadow: 0 24px 40px rgba(0, 0, 0, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.1);
             color: #FFF;
             display: flex;
             align-items: center;
@@ -247,11 +269,25 @@
             transition: border-color 0.3s ease;
             max-width: 100%;
         }
-        .my-glass-card:hover, .my-glass-card--circle:hover, .my-glass-card--square:hover {
+
+        .my-glass-card:hover,
+        .my-glass-card--circle:hover,
+        .my-glass-card--square:hover {
             border-color: rgba(255, 255, 255, 0.3);
         }
-        .my-glass-card { width: 360px; height: 100px; border-radius: 9999px; }
-        .my-glass-card--circle { width: 220px; height: 220px; border-radius: 50%; }
+
+        .my-glass-card {
+            width: 360px;
+            height: 100px;
+            border-radius: 9999px;
+        }
+
+        .my-glass-card--circle {
+            width: 220px;
+            height: 220px;
+            border-radius: 50%;
+        }
+
         .my-glass-card--square {
             width: 220px;
             height: 220px;
@@ -262,7 +298,8 @@
             --lg-refractive-index: 2;
         }
 
-        #my-container, #my-toggle {
+        #my-container,
+        #my-toggle {
             display: flex;
             align-items: center;
             justify-content: center;
@@ -291,6 +328,7 @@
             z-index: 50;
             transition: height 0.3s var(--ease-spring);
         }
+
         #console-bar.open {
             height: 200px;
             align-items: flex-start;
@@ -298,7 +336,7 @@
             flex-direction: column;
         }
 
-        #console-bar > span {
+        #console-bar>span {
             font-size: 10px;
             padding: 4px 8px;
             background: var(--surface);
@@ -314,12 +352,19 @@
             font: 12px/1.8 var(--mono);
             color: #A1A1AA;
         }
+
         #log-output .log-line {
-            border-bottom: 1px solid rgba(255,255,255,0.02);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.02);
             padding: 4px 0;
         }
-        #log-output .log-line.warn { color: #FBBF24; }
-        #log-output .log-line.commit { color: #34D399; }
+
+        #log-output .log-line.warn {
+            color: #FBBF24;
+        }
+
+        #log-output .log-line.commit {
+            color: #34D399;
+        }
 
         /* ── Configurator Control Panel ───────────────────────── */
         #panel {
@@ -331,7 +376,7 @@
             overflow-y: auto;
             overflow-x: hidden;
             padding: 0 0 100px 0;
-            box-shadow: -10px 0 30px rgba(0,0,0,0.3);
+            box-shadow: -10px 0 30px rgba(0, 0, 0, 0.3);
         }
 
         .ps-head {
@@ -351,6 +396,7 @@
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
         }
+
         .ps-head button {
             background: var(--surface);
             border: 1px solid var(--border);
@@ -361,11 +407,13 @@
             border-radius: 4px;
             transition: all 0.2s ease;
         }
+
         .ps-head button:hover {
             background: var(--surface-hover);
             color: #FFF;
             border-color: var(--border-hi);
         }
+
         .ps-body {
             padding: 16px 20px;
             display: flex;
@@ -373,12 +421,26 @@
             gap: 16px;
         }
 
-        .tab-content { display: none; animation: fadeIn 0.3s ease; width: 100%}
-        .tab-content.active { display: block; }
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.3s ease;
+            width: 100%
+        }
+
+        .tab-content.active {
+            display: block;
+        }
 
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(5px); }
-            to { opacity: 1; transform: translateY(0); }
+            from {
+                opacity: 0;
+                transform: translateY(5px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         /* ── Control Panel Insets & Form Fields ────────────────── */
@@ -387,12 +449,14 @@
             flex-direction: column;
             gap: 8px;
         }
+
         .ctrl-row {
             display: flex;
             align-items: center;
             justify-content: space-between;
             gap: 12px;
         }
+
         .ctrl-label {
             font: 500 12px/1 var(--font);
             color: var(--muted);
@@ -400,11 +464,12 @@
             align-items: center;
             gap: 6px;
         }
+
         .ctrl-label .tip {
             width: 14px;
             height: 14px;
             border-radius: 50%;
-            background: rgba(255,255,255,0.05);
+            background: rgba(255, 255, 255, 0.05);
             border: 1px solid var(--border);
             color: var(--muted);
             font-size: 9px;
@@ -416,6 +481,7 @@
             position: relative;
             transition: all 0.2s;
         }
+
         .ctrl-label .tip:hover {
             background: var(--surface-hover);
             color: #FFF;
@@ -435,7 +501,7 @@
             color: #FFF;
             white-space: nowrap;
             pointer-events: none;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
         }
 
         .ctrl-val {
@@ -443,7 +509,7 @@
             color: var(--accent);
             min-width: 44px;
             text-align: right;
-            background: rgba(0,0,0,0.2);
+            background: rgba(0, 0, 0, 0.2);
             padding: 4px 6px;
             border-radius: 4px;
             border: 1px solid var(--border);
@@ -455,24 +521,32 @@
             appearance: none;
             width: 100%;
             height: 4px;
-            background: rgba(0,0,0,0.3);
+            background: rgba(0, 0, 0, 0.3);
             border-radius: 4px;
             outline: none;
             cursor: pointer;
-            box-shadow: inset 0 1px 2px rgba(0,0,0,0.5);
-            border: 1px solid rgba(255,255,255,0.03);
+            box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.03);
         }
+
         .ctrl input[type=range]::-webkit-slider-thumb {
             -webkit-appearance: none;
             width: 16px;
             height: 16px;
             border-radius: 50%;
             background: #FFF;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.4), inset 0 -1px 2px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4), inset 0 -1px 2px rgba(0, 0, 0, 0.1);
             transition: transform 0.15s var(--ease-spring);
         }
-        .ctrl input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.15); }
-        .ctrl input[type=range]:active::-webkit-slider-thumb { cursor: grabbing; transform: scale(0.95); }
+
+        .ctrl input[type=range]::-webkit-slider-thumb:hover {
+            transform: scale(1.15);
+        }
+
+        .ctrl input[type=range]:active::-webkit-slider-thumb {
+            cursor: grabbing;
+            transform: scale(0.95);
+        }
 
         .ctrl input[type=color] {
             width: 36px;
@@ -480,29 +554,38 @@
             border: 1px solid var(--border);
             border-radius: 6px;
             cursor: pointer;
-            background: rgba(0,0,0,0.2);
+            background: rgba(0, 0, 0, 0.2);
             padding: 2px;
         }
-        .ctrl input[type=color]::-webkit-color-swatch-wrapper { padding: 0; }
-        .ctrl input[type=color]::-webkit-color-swatch { border: none; border-radius: 4px; }
+
+        .ctrl input[type=color]::-webkit-color-swatch-wrapper {
+            padding: 0;
+        }
+
+        .ctrl input[type=color]::-webkit-color-swatch {
+            border: none;
+            border-radius: 4px;
+        }
 
         /* Dashboard Setting Toggles */
         .ctrl-toggle {
             width: 40px;
             height: 22px;
             border-radius: 12px;
-            background: rgba(0,0,0,0.4);
+            background: rgba(0, 0, 0, 0.4);
             border: 1px solid var(--border);
             cursor: pointer;
             position: relative;
             transition: all 0.3s var(--ease-spring);
             flex-shrink: 0;
-            box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
         }
+
         .ctrl-toggle.on {
             background: var(--accent);
             border-color: var(--accent);
         }
+
         .ctrl-toggle::after {
             content: '';
             position: absolute;
@@ -513,19 +596,23 @@
             top: 2px;
             left: 3px;
             transition: all 0.3s var(--ease-spring);
-            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
         }
-        .ctrl-toggle.on::after { left: 19px; }
+
+        .ctrl-toggle.on::after {
+            left: 19px;
+        }
 
         .btn-group {
             display: flex;
             gap: 4px;
             width: 100%;
-            background: rgba(0,0,0,0.2);
+            background: rgba(0, 0, 0, 0.2);
             padding: 4px;
             border-radius: 8px;
             border: 1px solid var(--border);
         }
+
         .seg-btn {
             flex: 1;
             padding: 6px 0;
@@ -538,16 +625,17 @@
             text-align: center;
             transition: all 0.2s ease;
         }
+
         .seg-btn.active {
             background: var(--surface-hover);
             color: #FFF;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
             border: 1px solid var(--border-hi);
         }
 
         .ctrl input[type=text] {
             width: 100%;
-            background: rgba(0,0,0,0.2);
+            background: rgba(0, 0, 0, 0.2);
             border: 1px solid var(--border);
             border-radius: 6px;
             color: #FFF;
@@ -555,11 +643,12 @@
             padding: 8px 12px;
             outline: none;
             transition: all 0.2s ease;
-            box-shadow: inset 0 1px 3px rgba(0,0,0,0.2);
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
         }
+
         .ctrl input[type=text]:focus {
             border-color: var(--accent);
-            background: rgba(0,0,0,0.4);
+            background: rgba(0, 0, 0, 0.4);
         }
 
         /* ── Feedback Notifications ────────────────────────────── */
@@ -571,7 +660,7 @@
             background: rgba(16, 185, 129, 0.9);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255,255,255,0.2);
+            border: 1px solid rgba(255, 255, 255, 0.2);
             border-radius: 100px;
             padding: 10px 24px;
             font: 500 13px/1 var(--font);
@@ -579,17 +668,21 @@
             opacity: 0;
             pointer-events: none;
             transition: all 0.4s var(--ease-spring);
-            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
             z-index: 200;
         }
-        #toast.show { opacity: 1; transform: translate(-50%, 0) scale(1); }
+
+        #toast.show {
+            opacity: 1;
+            transform: translate(-50%, 0) scale(1);
+        }
 
         /* ── Code Export Generation Panel ─────────────────────── */
         #code-output {
             position: fixed;
             inset: 0;
             z-index: 300;
-            background: rgba(0,0,0,0.8);
+            background: rgba(0, 0, 0, 0.8);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
             display: none;
@@ -597,7 +690,10 @@
             justify-content: center;
             animation: fadeIn 0.2s ease;
         }
-        #code-output.show { display: flex; }
+
+        #code-output.show {
+            display: flex;
+        }
 
         #code-box {
             background: #09090B;
@@ -608,10 +704,17 @@
             width: 90%;
             max-height: 85vh;
             overflow-y: auto;
-            box-shadow: 0 30px 60px rgba(0,0,0,0.8), inset 0 1px 1px rgba(255,255,255,0.1);
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.8), inset 0 1px 1px rgba(255, 255, 255, 0.1);
             position: relative;
         }
-        #code-box h3 { font-size: 16px; font-weight: 600; margin-bottom: 20px; color: #FFF; }
+
+        #code-box h3 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #FFF;
+        }
+
         #code-box pre {
             font: 13px/1.6 var(--mono);
             color: #A1A1AA;
@@ -622,6 +725,7 @@
             white-space: pre-wrap;
             word-break: break-all;
         }
+
         #code-box .close-code {
             position: absolute;
             top: 24px;
@@ -635,7 +739,11 @@
             cursor: pointer;
             transition: all 0.2s;
         }
-        #code-box .close-code:hover { background: var(--surface-hover); color: #FFF; }
+
+        #code-box .close-code:hover {
+            background: var(--surface-hover);
+            color: #FFF;
+        }
 
         #code-box .copy-code {
             display: flex;
@@ -653,14 +761,22 @@
             cursor: pointer;
             transition: transform 0.15s ease, background 0.2s;
         }
-        #code-box .copy-code:hover { background: #FFF; transform: translateY(-1px); }
-        #code-box .copy-code:active { transform: translateY(1px); }
+
+        #code-box .copy-code:hover {
+            background: #FFF;
+            transform: translateY(-1px);
+        }
+
+        #code-box .copy-code:active {
+            transform: translateY(1px);
+        }
 
         /* ── Responsive Layout Overrides ──────────────────────── */
         @media (max-width: 1024px) {
             :root {
                 --panel-w: 290px;
             }
+
             .glass-row {
                 gap: 24px;
             }
@@ -671,9 +787,9 @@
                 grid-template-columns: 1fr;
                 grid-template-rows: var(--topbar-h) auto 1fr;
                 grid-template-areas:
-            "topbar"
-            "panel"
-            "canvas";
+                    "topbar"
+                    "panel"
+                    "canvas";
                 overflow-y: auto;
             }
 
@@ -712,8 +828,9 @@
                 overflow-y: auto;
                 overflow-x: hidden;
                 padding: 0 0 100px 0;
-                box-shadow: -10px 0 30px rgba(0,0,0,0.3);
+                box-shadow: -10px 0 30px rgba(0, 0, 0, 0.3);
             }
+
             #console-bar {
                 right: 0;
                 width: 100%;
@@ -724,785 +841,828 @@
             }
 
             #topbar .logo span {
-                display: none; /* Hide textual branding logo on tight viewports */
+                display: none;
+                /* Hide textual branding logo on tight viewports */
             }
         }
-        .d-none{
+
+        .d-none {
             display: none !important;
         }
     </style>
 </head>
+
 <body>
 
-<!-- ── Top bar ─────────────────────────────────────────────── -->
-<header id="topbar">
-    <div class="logo">
-        <svg viewBox="0 0 18 18" fill="none" stroke="rgba(180,182,255,.9)" stroke-width="1.5">
-            <circle cx="9" cy="9" r="7"/>
-            <path d="M5 9 Q9 4 13 9 Q9 14 5 9Z" fill="rgba(180,182,255,.25)" stroke="none"/>
-        </svg>
-        Liquid Glass
-    </div>
-    <div class="sep"></div>
-    <div class="tab-bar" id="main-tabs">
-        <button class="tab-btn active" data-tab="surface">Surface</button>
-        <button class="tab-btn" data-tab="slider">Slider</button>
-        <button class="tab-btn" data-tab="switch">Switch</button>
-    </div>
-    <div class="sep"></div>
-    <button class="topbar-btn" id="btn-code">
-        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
-            <polyline points="5 4 1 8 5 12"/><polyline points="11 4 15 8 11 12"/>
-        </svg>
-        Export code
-    </button>
-    <button class="topbar-btn" id="btn-reset">
-        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
-            <path d="M2 8a6 6 0 1 1 1.5 4"/>
-            <polyline points="2 14 2 9 7 9"/>
-        </svg>
-        Reset
-    </button>
-    <button class = "topbar-btn" id="btn-hide">
-        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
-            <path d="M3 8  a5 5 0 0 1 10 0"/>
-            <path d="M1 1  L15 15"/>
-        </svg>
-        Hide Panel
-    </button>
-</header>
-
-<!-- ── Canvas ─────────────────────────────────────────────── -->
-<main id="canvas">
-
-    <!-- Surface tab content -->
-    <div class="tab-content active" id="tab-surface">
-        <div class="section-label">Glass Surfaces</div>
-        <div class="glass-row">
-            <button class="my-glass-card" id="card-rect">Pill Rect</button>
-            <button class="my-glass-card--circle" id="card-circle">Circle</button>
-            <button class="my-glass-card--square" id="card-square">Square</button>
+    <!-- ── Top bar ─────────────────────────────────────────────── -->
+    <header id="topbar">
+        <div class="logo">
+            <svg viewBox="0 0 18 18" fill="none" stroke="rgba(180,182,255,.9)" stroke-width="1.5">
+                <circle cx="9" cy="9" r="7" />
+                <path d="M5 9 Q9 4 13 9 Q9 14 5 9Z" fill="rgba(180,182,255,.25)" stroke="none" />
+            </svg>
+            Liquid Glass
         </div>
-    </div>
-
-    <!-- Slider tab content -->
-    <div class="tab-content" id="tab-slider">
-        <div class="section-label">Liquid Glass Slider</div>
-        <div id="my-container" style="padding:60px 40px;"></div>
-    </div>
-
-    <!-- Switch tab content -->
-    <div class="tab-content" id="tab-switch">
-        <div class="section-label">Liquid Glass Switch</div>
-        <div id="my-toggle" style="padding:60px 40px;"></div>
-    </div>
-
-</main>
-
-<!-- ── Log console ───────────────────────────────────────── -->
-<div id="console-bar">
-    <span style="color:var(--muted);font-weight:700;flex-shrink:0">EVENTS</span>
-    <div id="log-output"></div>
-</div>
-
-<!-- ── Side panel ─────────────────────────────────────────── -->
-<aside id="panel">
-
-    <!-- ═══ SURFACE PANEL ═══════════════════════════════════════ -->
-    <div class="tab-content active" id="panel-surface">
-
-        <div class="ps-head">
-            Glass Optics
-            <button id="reset-optics">Reset</button>
+        <div class="sep"></div>
+        <div class="tab-bar" id="main-tabs">
+            <button class="tab-btn active" data-tab="surface">Surface</button>
+            <button class="tab-btn" data-tab="slider">Slider</button>
+            <button class="tab-btn" data-tab="switch">Switch</button>
         </div>
-        <div class="ps-body">
+        <div class="sep"></div>
+        <button class="topbar-btn" id="btn-code">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+                <polyline points="5 4 1 8 5 12" />
+                <polyline points="11 4 15 8 11 12" />
+            </svg>
+            Export code
+        </button>
+        <button class="topbar-btn" id="btn-reset">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M2 8a6 6 0 1 1 1.5 4" />
+                <polyline points="2 14 2 9 7 9" />
+            </svg>
+            Reset
+        </button>
+        <button class="topbar-btn" id="btn-hide">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M3 8  a5 5 0 0 1 10 0" />
+                <path d="M1 1  L15 15" />
+            </svg>
+            Hide Panel
+        </button>
+    </header>
 
-            <div class="ctrl" data-css="--lg-refractive-index" data-min="1" data-max="3" data-step="0.01" data-default="1.9">
-                <div class="ctrl-row">
-          <span class="ctrl-label">
-            Refractive Index
-            <span class="tip" data-tip="How much the glass bends light. Crown glass=1.5, flint glass=1.9, diamond=2.4">?</span>
-          </span>
-                    <span class="ctrl-val">1.90</span>
-                </div>
-                <input type="range" min="1" max="3" step="0.01" value="1.9">
+    <!-- ── Canvas ─────────────────────────────────────────────── -->
+    <main id="canvas">
+
+        <!-- Surface tab content -->
+        <div class="tab-content active" id="tab-surface">
+            <div class="section-label">Glass Surfaces</div>
+            <div class="glass-row">
+                <button class="my-glass-card" id="card-rect">Pill Rect</button>
+                <button class="my-glass-card--circle" id="card-circle">Circle</button>
+                <button class="my-glass-card--square" id="card-square">Square</button>
             </div>
-
-            <div class="ctrl" data-css="--lg-glass-thickness" data-min="20" data-max="300" data-step="1" data-default="120">
-                <div class="ctrl-row">
-          <span class="ctrl-label">
-            Glass Thickness
-            <span class="tip" data-tip="Virtual depth of the glass slab in pixels. Thicker = more displacement travel">?</span>
-          </span>
-                    <span class="ctrl-val">120</span>
-                </div>
-                <input type="range" min="20" max="300" step="1" value="120">
-            </div>
-
-            <div class="ctrl" data-css="--lg-bezel-width" data-min="2" data-max="100" data-step="1" data-default="40">
-                <div class="ctrl-row">
-          <span class="ctrl-label">
-            Bezel Width
-            <span class="tip" data-tip="Width of the rim transition zone where refraction ramps up. Wider = softer edge">?</span>
-          </span>
-                    <span class="ctrl-val">40</span>
-                </div>
-                <input type="range" min="2" max="100" step="1" value="40">
-            </div>
-
-            <div class="ctrl" data-css="--lg-refraction-scale" data-min="0.1" data-max="4" data-step="0.01" data-default="1.6">
-                <div class="ctrl-row">
-          <span class="ctrl-label">
-            Refraction Scale
-            <span class="tip" data-tip="Global multiplier on the displacement map. Higher = more exaggerated bending">?</span>
-          </span>
-                    <span class="ctrl-val">1.60</span>
-                </div>
-                <input type="range" min="0.1" max="4" step="0.01" value="1.6">
-            </div>
-
-            <div class="ctrl" data-css="--lg-aberration" data-min="0" data-max="2" data-step="0.01" data-default="0.8">
-                <div class="ctrl-row">
-          <span class="ctrl-label">
-            Chromatic Aberration
-            <span class="tip" data-tip="Splits R/G/B channels slightly. 0 = clean, 2 = heavy colour fringing">?</span>
-          </span>
-                    <span class="ctrl-val">0.80</span>
-                </div>
-                <input type="range" min="0" max="2" step="0.01" value="0.8">
-            </div>
-
         </div>
 
-        <div class="ps-head" style="margin-top:2px">
-            Backdrop
-            <button id="reset-backdrop">Reset</button>
-        </div>
-        <div class="ps-body">
-
-            <div class="ctrl" data-css="--lg-blur" data-min="0" data-max="40" data-step="0.5" data-default="0">
-                <div class="ctrl-row">
-                    <span class="ctrl-label">Blur <span class="tip" data-tip="Gaussian blur applied to the backdrop content">?</span></span>
-                    <span class="ctrl-val">0</span>
-                </div>
-                <input type="range" min="0" max="40" step="0.5" value="0">
-            </div>
-
-            <div class="ctrl" data-css="--lg-saturation" data-min="0" data-max="5" data-step="0.05" data-default="2.0">
-                <div class="ctrl-row">
-                    <span class="ctrl-label">Saturation <span class="tip" data-tip="Colour saturation of the refracted backdrop. >1 = boost, <1 = desaturate">?</span></span>
-                    <span class="ctrl-val">2.00</span>
-                </div>
-                <input type="range" min="0" max="5" step="0.05" value="2.0">
-            </div>
-
-            <div class="ctrl" data-css="--lg-brightness" data-min="0" data-max="2" data-step="0.01" data-default="0.5">
-                <div class="ctrl-row">
-                    <span class="ctrl-label">Brightness <span class="tip" data-tip="Brightness of the backdrop content behind the glass">?</span></span>
-                    <span class="ctrl-val">0.50</span>
-                </div>
-                <input type="range" min="0" max="2" step="0.01" value="0.5">
-            </div>
-
+        <!-- Slider tab content -->
+        <div class="tab-content" id="tab-slider">
+            <div class="section-label">Liquid Glass Slider</div>
+            <div id="my-container" style="padding:60px 40px;"></div>
         </div>
 
-        <div class="ps-head" style="margin-top:2px">
-            Interaction
-        </div>
-        <div class="ps-body">
-
-            <div class="ctrl" data-css="--lg-max-tilt" data-min="0" data-max="20" data-step="0.5" data-default="8">
-                <div class="ctrl-row">
-                    <span class="ctrl-label">Max Tilt <span class="tip" data-tip="Maximum 3-D rotation in degrees on hover">?</span></span>
-                    <span class="ctrl-val">8</span>
-                </div>
-                <input type="range" min="0" max="20" step="0.5" value="8">
-            </div>
-
-            <div class="ctrl" data-css="--lg-magnetic-pull" data-min="0" data-max="20" data-step="0.5" data-default="5">
-                <div class="ctrl-row">
-                    <span class="ctrl-label">Magnetic Pull <span class="tip" data-tip="How strongly the glass element is attracted toward the cursor">?</span></span>
-                    <span class="ctrl-val">5</span>
-                </div>
-                <input type="range" min="0" max="20" step="0.5" value="5">
-            </div>
-
-            <div class="ctrl-row" style="margin-top:4px">
-                <span class="ctrl-label">Enable Orb</span>
-                <div class="ctrl-toggle on" id="toggle-orb"></div>
-            </div>
-
+        <!-- Switch tab content -->
+        <div class="tab-content" id="tab-switch">
+            <div class="section-label">Liquid Glass Switch</div>
+            <div id="my-toggle" style="padding:60px 40px;"></div>
         </div>
 
-        <div class="ps-head" style="margin-top:2px">Ripple</div>
-        <div class="ps-body">
+    </main>
 
-            <div class="ctrl">
-                <div class="ctrl-row">
-                    <span class="ctrl-label">Colour</span>
-                    <input type="color" id="ripple-color" value="#ffffff">
-                </div>
-            </div>
-
-            <div class="ctrl" id="ripple-size-ctrl" data-min="1" data-max="8" data-step="0.1" data-default="4">
-                <div class="ctrl-row">
-                    <span class="ctrl-label">Size ×</span>
-                    <span class="ctrl-val">4.0</span>
-                </div>
-                <input type="range" min="1" max="8" step="0.1" value="4">
-            </div>
-
-            <div class="ctrl" id="ripple-dur-ctrl" data-min="500" data-max="6000" data-step="100" data-default="4000">
-                <div class="ctrl-row">
-                    <span class="ctrl-label">Duration ms</span>
-                    <span class="ctrl-val">4000</span>
-                </div>
-                <input type="range" min="500" max="6000" step="100" value="4000">
-            </div>
-
-        </div>
+    <!-- ── Log console ───────────────────────────────────────── -->
+    <div id="console-bar">
+        <span style="color:var(--muted);font-weight:700;flex-shrink:0">EVENTS</span>
+        <div id="log-output"></div>
     </div>
 
-    <!-- ═══ SLIDER PANEL ════════════════════════════════════════ -->
-    <div class="tab-content" id="panel-slider">
+    <!-- ── Side panel ─────────────────────────────────────────── -->
+    <aside id="panel">
 
-        <div class="ps-head">Track</div>
-        <div class="ps-body">
+        <!-- ═══ SURFACE PANEL ═══════════════════════════════════════ -->
+        <div class="tab-content active" id="panel-surface">
 
-            <div class="ctrl" id="sl-trackWidth" data-min="100" data-max="600" data-step="2" data-default="330">
-                <div class="ctrl-row"><span class="ctrl-label">Width px</span><span class="ctrl-val">330</span></div>
-                <input type="range" min="100" max="600" step="2" value="330">
+            <div class="ps-head">
+                Glass Optics
+                <button id="reset-optics">Reset</button>
             </div>
-            <div class="ctrl" id="sl-trackHeight" data-min="4" data-max="40" data-step="1" data-default="18">
-                <div class="ctrl-row"><span class="ctrl-label">Height px</span><span class="ctrl-val">18</span></div>
-                <input type="range" min="4" max="40" step="1" value="18">
+            <div class="ps-body">
+
+                <div class="ctrl" data-css="--lg-refractive-index" data-min="1" data-max="3" data-step="0.01"
+                    data-default="1.9">
+                    <div class="ctrl-row">
+                        <span class="ctrl-label">
+                            Refractive Index
+                            <span class="tip"
+                                data-tip="How much the glass bends light. Crown glass=1.5, flint glass=1.9, diamond=2.4">?</span>
+                        </span>
+                        <span class="ctrl-val">1.90</span>
+                    </div>
+                    <input type="range" min="1" max="3" step="0.01" value="1.9">
+                </div>
+
+                <div class="ctrl" data-css="--lg-glass-thickness" data-min="20" data-max="300" data-step="1"
+                    data-default="120">
+                    <div class="ctrl-row">
+                        <span class="ctrl-label">
+                            Glass Thickness
+                            <span class="tip"
+                                data-tip="Virtual depth of the glass slab in pixels. Thicker = more displacement travel">?</span>
+                        </span>
+                        <span class="ctrl-val">120</span>
+                    </div>
+                    <input type="range" min="20" max="300" step="1" value="120">
+                </div>
+
+                <div class="ctrl" data-css="--lg-bezel-width" data-min="2" data-max="100" data-step="1"
+                    data-default="40">
+                    <div class="ctrl-row">
+                        <span class="ctrl-label">
+                            Bezel Width
+                            <span class="tip"
+                                data-tip="Width of the rim transition zone where refraction ramps up. Wider = softer edge">?</span>
+                        </span>
+                        <span class="ctrl-val">40</span>
+                    </div>
+                    <input type="range" min="2" max="100" step="1" value="40">
+                </div>
+
+                <div class="ctrl" data-css="--lg-refraction-scale" data-min="0.1" data-max="4" data-step="0.01"
+                    data-default="1.6">
+                    <div class="ctrl-row">
+                        <span class="ctrl-label">
+                            Refraction Scale
+                            <span class="tip"
+                                data-tip="Global multiplier on the displacement map. Higher = more exaggerated bending">?</span>
+                        </span>
+                        <span class="ctrl-val">1.60</span>
+                    </div>
+                    <input type="range" min="0.1" max="4" step="0.01" value="1.6">
+                </div>
+
+                <div class="ctrl" data-css="--lg-aberration" data-min="0" data-max="2" data-step="0.01"
+                    data-default="0.8">
+                    <div class="ctrl-row">
+                        <span class="ctrl-label">
+                            Chromatic Aberration
+                            <span class="tip"
+                                data-tip="Splits R/G/B channels slightly. 0 = clean, 2 = heavy colour fringing">?</span>
+                        </span>
+                        <span class="ctrl-val">0.80</span>
+                    </div>
+                    <input type="range" min="0" max="2" step="0.01" value="0.8">
+                </div>
+
             </div>
-            <div class="ctrl">
+
+            <div class="ps-head" style="margin-top:2px">
+                Backdrop
+                <button id="reset-backdrop">Reset</button>
+            </div>
+            <div class="ps-body">
+
+                <div class="ctrl" data-css="--lg-blur" data-min="0" data-max="40" data-step="0.5" data-default="0">
+                    <div class="ctrl-row">
+                        <span class="ctrl-label">Blur <span class="tip"
+                                data-tip="Gaussian blur applied to the backdrop content">?</span></span>
+                        <span class="ctrl-val">0</span>
+                    </div>
+                    <input type="range" min="0" max="40" step="0.5" value="0">
+                </div>
+
+                <div class="ctrl" data-css="--lg-saturation" data-min="0" data-max="5" data-step="0.05"
+                    data-default="2.0">
+                    <div class="ctrl-row">
+                        <span class="ctrl-label">Saturation <span class="tip"
+                                data-tip="Colour saturation of the refracted backdrop. >1 = boost, <1 = desaturate">?</span></span>
+                        <span class="ctrl-val">2.00</span>
+                    </div>
+                    <input type="range" min="0" max="5" step="0.05" value="2.0">
+                </div>
+
+                <div class="ctrl" data-css="--lg-brightness" data-min="0" data-max="2" data-step="0.01"
+                    data-default="0.5">
+                    <div class="ctrl-row">
+                        <span class="ctrl-label">Brightness <span class="tip"
+                                data-tip="Brightness of the backdrop content behind the glass">?</span></span>
+                        <span class="ctrl-val">0.50</span>
+                    </div>
+                    <input type="range" min="0" max="2" step="0.01" value="0.5">
+                </div>
+
+            </div>
+
+            <div class="ps-head" style="margin-top:2px">
+                Interaction
+            </div>
+            <div class="ps-body">
+
+                <div class="ctrl" data-css="--lg-max-tilt" data-min="0" data-max="20" data-step="0.5" data-default="8">
+                    <div class="ctrl-row">
+                        <span class="ctrl-label">Max Tilt <span class="tip"
+                                data-tip="Maximum 3-D rotation in degrees on hover">?</span></span>
+                        <span class="ctrl-val">8</span>
+                    </div>
+                    <input type="range" min="0" max="20" step="0.5" value="8">
+                </div>
+
+                <div class="ctrl" data-css="--lg-magnetic-pull" data-min="0" data-max="20" data-step="0.5"
+                    data-default="5">
+                    <div class="ctrl-row">
+                        <span class="ctrl-label">Magnetic Pull <span class="tip"
+                                data-tip="How strongly the glass element is attracted toward the cursor">?</span></span>
+                        <span class="ctrl-val">5</span>
+                    </div>
+                    <input type="range" min="0" max="20" step="0.5" value="5">
+                </div>
+
+                <div class="ctrl-row" style="margin-top:4px">
+                    <span class="ctrl-label">Enable Orb</span>
+                    <div class="ctrl-toggle on" id="toggle-orb"></div>
+                </div>
+
+            </div>
+
+            <div class="ps-head" style="margin-top:2px">Ripple</div>
+            <div class="ps-body">
+
+                <div class="ctrl">
+                    <div class="ctrl-row">
+                        <span class="ctrl-label">Colour</span>
+                        <input type="color" id="ripple-color" value="#ffffff">
+                    </div>
+                </div>
+
+                <div class="ctrl" id="ripple-size-ctrl" data-min="1" data-max="8" data-step="0.1" data-default="4">
+                    <div class="ctrl-row">
+                        <span class="ctrl-label">Size ×</span>
+                        <span class="ctrl-val">4.0</span>
+                    </div>
+                    <input type="range" min="1" max="8" step="0.1" value="4">
+                </div>
+
+                <div class="ctrl" id="ripple-dur-ctrl" data-min="500" data-max="6000" data-step="100"
+                    data-default="4000">
+                    <div class="ctrl-row">
+                        <span class="ctrl-label">Duration ms</span>
+                        <span class="ctrl-val">4000</span>
+                    </div>
+                    <input type="range" min="500" max="6000" step="100" value="4000">
+                </div>
+
+            </div>
+        </div>
+
+        <!-- ═══ SLIDER PANEL ════════════════════════════════════════ -->
+        <div class="tab-content" id="panel-slider">
+
+            <div class="ps-head">Track</div>
+            <div class="ps-body">
+
+                <div class="ctrl" id="sl-trackWidth" data-min="100" data-max="600" data-step="2" data-default="330">
+                    <div class="ctrl-row"><span class="ctrl-label">Width px</span><span class="ctrl-val">330</span>
+                    </div>
+                    <input type="range" min="100" max="600" step="2" value="330">
+                </div>
+                <div class="ctrl" id="sl-trackHeight" data-min="4" data-max="40" data-step="1" data-default="18">
+                    <div class="ctrl-row"><span class="ctrl-label">Height px</span><span class="ctrl-val">18</span>
+                    </div>
+                    <input type="range" min="4" max="40" step="1" value="18">
+                </div>
+                <div class="ctrl">
+                    <div class="ctrl-row">
+                        <span class="ctrl-label">Fill colour</span>
+                        <input type="color" id="sl-trackFill" value="#3b82f6">
+                    </div>
+                </div>
+            </div>
+
+            <div class="ps-head" style="margin-top:2px">Thumb</div>
+            <div class="ps-body">
+
+                <div class="ctrl" id="sl-thumbWidth" data-min="30" data-max="180" data-step="2" data-default="90">
+                    <div class="ctrl-row"><span class="ctrl-label">Width px</span><span class="ctrl-val">90</span></div>
+                    <input type="range" min="30" max="180" step="2" value="90">
+                </div>
+                <div class="ctrl" id="sl-thumbHeight" data-min="20" data-max="120" data-step="2" data-default="60">
+                    <div class="ctrl-row"><span class="ctrl-label">Height px</span><span class="ctrl-val">60</span>
+                    </div>
+                    <input type="range" min="20" max="120" step="2" value="60">
+                </div>
+                <div class="ctrl" id="sl-thumbRadius" data-min="0" data-max="60" data-step="1" data-default="30">
+                    <div class="ctrl-row"><span class="ctrl-label">Radius px</span><span class="ctrl-val">30</span>
+                    </div>
+                    <input type="range" min="0" max="60" step="1" value="30">
+                </div>
+
+            </div>
+
+            <div class="ps-head" style="margin-top:2px">Value Label</div>
+            <div class="ps-body">
+
+                <div class="ctrl">
+                    <span class="ctrl-label" style="margin-bottom:4px">Position</span>
+                    <div class="btn-group" id="sl-labelPos">
+                        <button class="seg-btn" data-val="">None</button>
+                        <button class="seg-btn active" data-val="top">Top</button>
+                        <button class="seg-btn" data-val="bottom">Bottom</button>
+                        <button class="seg-btn" data-val="left">Left</button>
+                        <button class="seg-btn" data-val="right">Right</button>
+                    </div>
+                </div>
+
                 <div class="ctrl-row">
-                    <span class="ctrl-label">Fill colour</span>
-                    <input type="color" id="sl-trackFill" value="#3b82f6">
+                    <span class="ctrl-label">Sticky (follows thumb)</span>
+                    <div class="ctrl-toggle on" id="sl-labelSticky"></div>
                 </div>
+
+                <div class="ctrl" id="sl-labelDecimals" data-min="0" data-max="3" data-step="1" data-default="0">
+                    <div class="ctrl-row"><span class="ctrl-label">Decimals</span><span class="ctrl-val">0</span></div>
+                    <input type="range" min="0" max="3" step="1" value="0">
+                </div>
+
+                <div class="ctrl">
+                    <div class="ctrl-row"><span class="ctrl-label">Label colour</span>
+                        <input type="color" id="sl-labelColor" value="#ccccff">
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="ps-head" style="margin-top:2px">Glass Optics</div>
+            <div class="ps-body">
+
+                <div class="ctrl" id="sl-refractiveIndex" data-min="1" data-max="3" data-step="0.01"
+                    data-default="1.45">
+                    <div class="ctrl-row"><span class="ctrl-label">Refractive Index</span><span
+                            class="ctrl-val">1.45</span></div>
+                    <input type="range" min="1" max="3" step="0.01" value="1.45">
+                </div>
+                <div class="ctrl" id="sl-glassThickness" data-min="20" data-max="300" data-step="1" data-default="80">
+                    <div class="ctrl-row"><span class="ctrl-label">Glass Thickness</span><span
+                            class="ctrl-val">80</span></div>
+                    <input type="range" min="20" max="300" step="1" value="80">
+                </div>
+                <div class="ctrl" id="sl-bezelWidth" data-min="2" data-max="60" data-step="1" data-default="16">
+                    <div class="ctrl-row"><span class="ctrl-label">Bezel Width</span><span class="ctrl-val">16</span>
+                    </div>
+                    <input type="range" min="2" max="60" step="1" value="16">
+                </div>
+
             </div>
         </div>
 
-        <div class="ps-head" style="margin-top:2px">Thumb</div>
-        <div class="ps-body">
+        <!-- ═══ SWITCH PANEL ════════════════════════════════════════ -->
+        <div class="tab-content" id="panel-switch">
 
-            <div class="ctrl" id="sl-thumbWidth" data-min="30" data-max="180" data-step="2" data-default="90">
-                <div class="ctrl-row"><span class="ctrl-label">Width px</span><span class="ctrl-val">90</span></div>
-                <input type="range" min="30" max="180" step="2" value="90">
+            <div class="ps-head">Track</div>
+            <div class="ps-body">
+
+                <div class="ctrl" id="sw-trackWidth" data-min="80" data-max="280" data-step="2" data-default="160">
+                    <div class="ctrl-row"><span class="ctrl-label">Width px</span><span class="ctrl-val">160</span>
+                    </div>
+                    <input type="range" min="80" max="280" step="2" value="160">
+                </div>
+                <div class="ctrl" id="sw-trackHeight" data-min="24" data-max="100" data-step="2" data-default="67">
+                    <div class="ctrl-row"><span class="ctrl-label">Height px</span><span class="ctrl-val">67</span>
+                    </div>
+                    <input type="range" min="24" max="100" step="2" value="67">
+                </div>
+                <div class="ctrl">
+                    <div class="ctrl-row">
+                        <span class="ctrl-label">ON colour</span>
+                        <input type="color" id="sw-colorOn" value="#8b5cf6">
+                    </div>
+                </div>
+
             </div>
-            <div class="ctrl" id="sl-thumbHeight" data-min="20" data-max="120" data-step="2" data-default="60">
-                <div class="ctrl-row"><span class="ctrl-label">Height px</span><span class="ctrl-val">60</span></div>
-                <input type="range" min="20" max="120" step="2" value="60">
-            </div>
-            <div class="ctrl" id="sl-thumbRadius" data-min="0" data-max="60" data-step="1" data-default="30">
-                <div class="ctrl-row"><span class="ctrl-label">Radius px</span><span class="ctrl-val">30</span></div>
-                <input type="range" min="0" max="60" step="1" value="30">
-            </div>
 
-        </div>
-
-        <div class="ps-head" style="margin-top:2px">Value Label</div>
-        <div class="ps-body">
-
-            <div class="ctrl">
-                <span class="ctrl-label" style="margin-bottom:4px">Position</span>
-                <div class="btn-group" id="sl-labelPos">
-                    <button class="seg-btn" data-val="">None</button>
-                    <button class="seg-btn active" data-val="top">Top</button>
-                    <button class="seg-btn" data-val="bottom">Bottom</button>
-                    <button class="seg-btn" data-val="left">Left</button>
-                    <button class="seg-btn" data-val="right">Right</button>
+            <div class="ps-head" style="margin-top:2px">Thumb Icons</div>
+            <div class="ps-body">
+                <div class="ctrl">
+                    <div class="ctrl-row"><span class="ctrl-label">Icon OFF (SVG/HTML)</span></div>
+                    <input type="text" id="sw-iconOff" placeholder="<svg>...</svg>">
+                </div>
+                <div class="ctrl">
+                    <div class="ctrl-row"><span class="ctrl-label">Icon ON (SVG/HTML)</span></div>
+                    <input type="text" id="sw-iconOn" placeholder="<svg>...</svg>">
+                </div>
+                <div class="ctrl">
+                    <div class="ctrl-row"><span class="ctrl-label">Icon Colour OFF</span><input type="color"
+                            id="sw-iconColorOff" value="#8A8A98"></div>
+                </div>
+                <div class="ctrl">
+                    <div class="ctrl-row"><span class="ctrl-label">Icon Colour ON</span><input type="color"
+                            id="sw-iconColorOn" value="#10B981"></div>
                 </div>
             </div>
 
-            <div class="ctrl-row">
-                <span class="ctrl-label">Sticky (follows thumb)</span>
-                <div class="ctrl-toggle on" id="sl-labelSticky"></div>
-            </div>
-
-            <div class="ctrl" id="sl-labelDecimals" data-min="0" data-max="3" data-step="1" data-default="0">
-                <div class="ctrl-row"><span class="ctrl-label">Decimals</span><span class="ctrl-val">0</span></div>
-                <input type="range" min="0" max="3" step="1" value="0">
-            </div>
-
-            <div class="ctrl">
-                <div class="ctrl-row"><span class="ctrl-label">Label colour</span>
-                    <input type="color" id="sl-labelColor" value="#ccccff">
+            <div class="ps-head" style="margin-top:2px">Thumb Dimensions</div>
+            <div class="ps-body">
+                <div class="ctrl" id="sw-thumbWidth" data-min="50" data-max="240" data-step="2" data-default="146">
+                    <div class="ctrl-row"><span class="ctrl-label">Width px</span><span class="ctrl-val">146</span>
+                    </div>
+                    <input type="range" min="50" max="240" step="2" value="146">
+                </div>
+                <div class="ctrl" id="sw-thumbHeight" data-min="30" data-max="140" data-step="2" data-default="92">
+                    <div class="ctrl-row"><span class="ctrl-label">Height px</span><span class="ctrl-val">92</span>
+                    </div>
+                    <input type="range" min="30" max="140" step="2" value="92">
+                </div>
+                <div class="ctrl" id="sw-thumbRadius" data-min="0" data-max="70" data-step="1" data-default="46">
+                    <div class="ctrl-row"><span class="ctrl-label">Radius px</span><span class="ctrl-val">46</span>
+                    </div>
+                    <input type="range" min="0" max="70" step="1" value="46">
+                </div>
+                <div class="ctrl-row" style="margin-top:4px">
+                    <span class="ctrl-label">Start checked</span>
+                    <div class="ctrl-toggle on" id="sw-checked"></div>
                 </div>
             </div>
 
+            <div class="ps-head" style="margin-top:2px">Glass Optics</div>
+            <div class="ps-body">
+
+                <div class="ctrl" id="sw-refractiveIndex" data-min="1" data-max="3" data-step="0.01" data-default="1.5">
+                    <div class="ctrl-row"><span class="ctrl-label">Refractive Index</span><span
+                            class="ctrl-val">1.50</span></div>
+                    <input type="range" min="1" max="3" step="0.01" value="1.5">
+                </div>
+                <div class="ctrl" id="sw-glassThickness" data-min="20" data-max="200" data-step="1" data-default="47">
+                    <div class="ctrl-row"><span class="ctrl-label">Glass Thickness</span><span
+                            class="ctrl-val">47</span></div>
+                    <input type="range" min="20" max="200" step="1" value="47">
+                </div>
+                <div class="ctrl" id="sw-bezelWidth" data-min="2" data-max="60" data-step="1" data-default="19">
+                    <div class="ctrl-row"><span class="ctrl-label">Bezel Width</span><span class="ctrl-val">19</span>
+                    </div>
+                    <input type="range" min="2" max="60" step="1" value="19">
+                </div>
+
+            </div>
         </div>
 
-        <div class="ps-head" style="margin-top:2px">Glass Optics</div>
-        <div class="ps-body">
+    </aside>
 
-            <div class="ctrl" id="sl-refractiveIndex" data-min="1" data-max="3" data-step="0.01" data-default="1.45">
-                <div class="ctrl-row"><span class="ctrl-label">Refractive Index</span><span class="ctrl-val">1.45</span></div>
-                <input type="range" min="1" max="3" step="0.01" value="1.45">
-            </div>
-            <div class="ctrl" id="sl-glassThickness" data-min="20" data-max="300" data-step="1" data-default="80">
-                <div class="ctrl-row"><span class="ctrl-label">Glass Thickness</span><span class="ctrl-val">80</span></div>
-                <input type="range" min="20" max="300" step="1" value="80">
-            </div>
-            <div class="ctrl" id="sl-bezelWidth" data-min="2" data-max="60" data-step="1" data-default="16">
-                <div class="ctrl-row"><span class="ctrl-label">Bezel Width</span><span class="ctrl-val">16</span></div>
-                <input type="range" min="2" max="60" step="1" value="16">
-            </div>
+    <!-- ── Toast ────────────────────────────────────────────────── -->
+    <div id="toast">Copied!</div>
 
+    <!-- ── Code output ──────────────────────────────────────────── -->
+    <div id="code-output">
+        <div id="code-box">
+            <button class="close-code" id="close-code">✕ Close</button>
+            <h3>Generated initialisation code</h3>
+            <pre id="code-text"></pre>
+            <button class="copy-code" id="copy-code">Copy to clipboard</button>
         </div>
     </div>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script type="module">
+        import { LiquidGlass } from './src/index.js';
 
-    <!-- ═══ SWITCH PANEL ════════════════════════════════════════ -->
-    <div class="tab-content" id="panel-switch">
+        // ═══════════════════════════════════════════════════════════════
+        // STATE
+        // ═══════════════════════════════════════════════════════════════
 
-        <div class="ps-head">Track</div>
-        <div class="ps-body">
+        let surfaceInstances = [];
+        let sliderInstance = null;
+        let switchInstance = null;
+        let activeTab = 'surface';
+        let orbEnabled = false;
 
-            <div class="ctrl" id="sw-trackWidth" data-min="80" data-max="280" data-step="2" data-default="160">
-                <div class="ctrl-row"><span class="ctrl-label">Width px</span><span class="ctrl-val">160</span></div>
-                <input type="range" min="80" max="280" step="2" value="160">
-            </div>
-            <div class="ctrl" id="sw-trackHeight" data-min="24" data-max="100" data-step="2" data-default="67">
-                <div class="ctrl-row"><span class="ctrl-label">Height px</span><span class="ctrl-val">67</span></div>
-                <input type="range" min="24" max="100" step="2" value="67">
-            </div>
-            <div class="ctrl">
-                <div class="ctrl-row">
-                    <span class="ctrl-label">ON colour</span>
-                    <input type="color" id="sw-colorOn" value="#8b5cf6">
-                </div>
-            </div>
+        const defaultIconOff = '<span><i class="fa-solid fa-moon" style="font-size: 28px;"></i> Dark Mode</span>';
+        const defaultIconOn = '<span><i class="fa-solid fa-sun" style="font-size: 28px;"></i> Light Mode</span>';
 
-        </div>
+        document.getElementById('sw-iconOff').value = defaultIconOff;
+        document.getElementById('sw-iconOn').value = defaultIconOn;
 
-        <div class="ps-head" style="margin-top:2px">Thumb Icons</div>
-        <div class="ps-body">
-            <div class="ctrl">
-                <div class="ctrl-row"><span class="ctrl-label">Icon OFF (SVG/HTML)</span></div>
-                <input type="text" id="sw-iconOff" placeholder="<svg>...</svg>">
-            </div>
-            <div class="ctrl">
-                <div class="ctrl-row"><span class="ctrl-label">Icon ON (SVG/HTML)</span></div>
-                <input type="text" id="sw-iconOn" placeholder="<svg>...</svg>">
-            </div>
-            <div class="ctrl">
-                <div class="ctrl-row"><span class="ctrl-label">Icon Colour OFF</span><input type="color" id="sw-iconColorOff" value="#8A8A98"></div>
-            </div>
-            <div class="ctrl">
-                <div class="ctrl-row"><span class="ctrl-label">Icon Colour ON</span><input type="color" id="sw-iconColorOn" value="#10B981"></div>
-            </div>
-        </div>
-
-        <div class="ps-head" style="margin-top:2px">Thumb Dimensions</div>
-        <div class="ps-body">
-            <div class="ctrl" id="sw-thumbWidth" data-min="50" data-max="240" data-step="2" data-default="146">
-                <div class="ctrl-row"><span class="ctrl-label">Width px</span><span class="ctrl-val">146</span></div>
-                <input type="range" min="50" max="240" step="2" value="146">
-            </div>
-            <div class="ctrl" id="sw-thumbHeight" data-min="30" data-max="140" data-step="2" data-default="92">
-                <div class="ctrl-row"><span class="ctrl-label">Height px</span><span class="ctrl-val">92</span></div>
-                <input type="range" min="30" max="140" step="2" value="92">
-            </div>
-            <div class="ctrl" id="sw-thumbRadius" data-min="0" data-max="70" data-step="1" data-default="46">
-                <div class="ctrl-row"><span class="ctrl-label">Radius px</span><span class="ctrl-val">46</span></div>
-                <input type="range" min="0" max="70" step="1" value="46">
-            </div>
-            <div class="ctrl-row" style="margin-top:4px">
-                <span class="ctrl-label">Start checked</span>
-                <div class="ctrl-toggle on" id="sw-checked"></div>
-            </div>
-        </div>
-
-        <div class="ps-head" style="margin-top:2px">Glass Optics</div>
-        <div class="ps-body">
-
-            <div class="ctrl" id="sw-refractiveIndex" data-min="1" data-max="3" data-step="0.01" data-default="1.5">
-                <div class="ctrl-row"><span class="ctrl-label">Refractive Index</span><span class="ctrl-val">1.50</span></div>
-                <input type="range" min="1" max="3" step="0.01" value="1.5">
-            </div>
-            <div class="ctrl" id="sw-glassThickness" data-min="20" data-max="200" data-step="1" data-default="47">
-                <div class="ctrl-row"><span class="ctrl-label">Glass Thickness</span><span class="ctrl-val">47</span></div>
-                <input type="range" min="20" max="200" step="1" value="47">
-            </div>
-            <div class="ctrl" id="sw-bezelWidth" data-min="2" data-max="60" data-step="1" data-default="19">
-                <div class="ctrl-row"><span class="ctrl-label">Bezel Width</span><span class="ctrl-val">19</span></div>
-                <input type="range" min="2" max="60" step="1" value="19">
-            </div>
-
-        </div>
-    </div>
-
-</aside>
-
-<!-- ── Toast ────────────────────────────────────────────────── -->
-<div id="toast">Copied!</div>
-
-<!-- ── Code output ──────────────────────────────────────────── -->
-<div id="code-output">
-    <div id="code-box">
-        <button class="close-code" id="close-code">✕ Close</button>
-        <h3>Generated initialisation code</h3>
-        <pre id="code-text"></pre>
-        <button class="copy-code" id="copy-code">Copy to clipboard</button>
-    </div>
-</div>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-<script type="module">
-    import { LiquidGlass } from './src/index.js';
-
-    // ═══════════════════════════════════════════════════════════════
-    // STATE
-    // ═══════════════════════════════════════════════════════════════
-
-    let surfaceInstances = [];
-    let sliderInstance   = null;
-    let switchInstance   = null;
-    let activeTab        = 'surface';
-    let orbEnabled    = false;
-
-    const defaultIconOff = '<span><i class="fa-solid fa-moon" style="font-size: 28px;"></i> Dark Mode</span>';
-    const defaultIconOn  = '<span><i class="fa-solid fa-sun" style="font-size: 28px;"></i> Light Mode</span>';
-
-    document.getElementById('sw-iconOff').value = defaultIconOff;
-    document.getElementById('sw-iconOn').value = defaultIconOn;
-
-    // Accumulated options for each component type
-    const sliderOpts = {
-        trackWidth: 330, trackHeight: 18, trackFill: 'linear-gradient(90deg,#3b82f6,#60a5fa)',
-        thumbWidth: 90, thumbHeight: 60, thumbRadius: 30,
-        labelPosition: 'top', labelSticky: true, labelDecimals: 0,
-        labelColor: 'rgba(200,200,255,0.9)', labelGap: 10,
-        value: 30,
-        refractiveIndex: 1.45, glassThickness: 80, bezelWidth: 16,
-        onChange: v => log(`slider change → ${v.toFixed(1)}`, 'live'),
-        onCommit: v => log(`slider commit → ${v.toFixed(1)}`, 'commit'),
-    };
-    const switchOpts = {
-        trackWidth: 160, trackHeight: 67,
-        thumbWidth: 146, thumbHeight: 92, thumbRadius: 46,
-        colorOff: [255, 255, 255, 0.05],
-        colorOn: [16, 185, 129, 0.4],
-        checked: true,
-        iconOff: defaultIconOff,
-        iconOn: defaultIconOn,
-        iconColorOff: '#8A8A98',
-        iconColorOn: '#10B981',
-        refractiveIndex: 1.5, glassThickness: 47, bezelWidth: 19,
-        onChange: v => log(`switch → ${v ? 'ON' : 'OFF'}`, 'commit'),
-    };
-    const rippleOpts = { color: '#ffffff', sizeMultiplier: 4, durationMs: 4000 };
-
-    // ═══════════════════════════════════════════════════════════════
-    // SURFACE INIT
-    // ═══════════════════════════════════════════════════════════════
-
-    function initSurfaces() {
-        surfaceInstances.forEach(s => s?.destroy?.());
-        surfaceInstances = [];
-
-        const shared = {
-            backdrop: {
-                blur:       parseFloat(getVar('--lg-blur')),
-                saturation: parseFloat(getVar('--lg-saturation')),
-                brightness: parseFloat(getVar('--lg-brightness')),
-            },
-            refractiveIndex: parseFloat(getVar('--lg-refractive-index')),
-            glassThickness:  parseFloat(getVar('--lg-glass-thickness')),
-            bezelWidth:      parseFloat(getVar('--lg-bezel-width')),
-            refractionScale: parseFloat(getVar('--lg-refraction-scale')),
-            maxTilt:         parseFloat(getVar('--lg-max-tilt')),
-            aberration:      parseFloat(getVar('--lg-aberration')),
-            magneticPull:    parseFloat(getVar('--lg-magnetic-pull')),
-            enableOrb:       orbEnabled,
+        // Accumulated options for each component type
+        const sliderOpts = {
+            trackWidth: 330, trackHeight: 18, trackFill: 'linear-gradient(90deg,#3b82f6,#60a5fa)',
+            thumbWidth: 90, thumbHeight: 60, thumbRadius: 30,
+            labelPosition: 'top', labelSticky: true, labelDecimals: 0,
+            labelColor: 'rgba(200,200,255,0.9)', labelGap: 10,
+            value: 30,
+            refractiveIndex: 1.45, glassThickness: 80, bezelWidth: 16,
+            onChange: v => log(`slider change → ${v.toFixed(1)}`, 'live'),
+            onCommit: v => log(`slider commit → ${v.toFixed(1)}`, 'commit'),
         };
+        const switchOpts = {
+            trackWidth: 160, trackHeight: 67,
+            thumbWidth: 146, thumbHeight: 92, thumbRadius: 46,
+            colorOff: [255, 255, 255, 0.05],
+            colorOn: [16, 185, 129, 0.4],
+            checked: true,
+            iconOff: defaultIconOff,
+            iconOn: defaultIconOn,
+            iconColorOff: '#8A8A98',
+            iconColorOn: '#10B981',
+            refractiveIndex: 1.5, glassThickness: 47, bezelWidth: 19,
+            onChange: v => log(`switch → ${v ? 'ON' : 'OFF'}`, 'commit'),
+        };
+        const rippleOpts = { color: '#ffffff', sizeMultiplier: 4, durationMs: 4000 };
 
-        LiquidGlass.init('.my-glass-card',         { ...shared });
-        LiquidGlass.init('.my-glass-card--circle', { ...shared });
-        LiquidGlass.init('.my-glass-card--square', { ...shared,
-            bezelWidth:      15,
-            refractionScale: 2,
-            magneticPull:    0,
-            refractiveIndex: 2,
+        // ═══════════════════════════════════════════════════════════════
+        // SURFACE INIT
+        // ═══════════════════════════════════════════════════════════════
+
+        function initSurfaces() {
+            surfaceInstances.forEach(s => s?.destroy?.());
+            surfaceInstances = [];
+
+            const shared = {
+                backdrop: {
+                    blur: parseFloat(getVar('--lg-blur')),
+                    saturation: parseFloat(getVar('--lg-saturation')),
+                    brightness: parseFloat(getVar('--lg-brightness')),
+                },
+                refractiveIndex: parseFloat(getVar('--lg-refractive-index')),
+                glassThickness: parseFloat(getVar('--lg-glass-thickness')),
+                bezelWidth: parseFloat(getVar('--lg-bezel-width')),
+                refractionScale: parseFloat(getVar('--lg-refraction-scale')),
+                maxTilt: parseFloat(getVar('--lg-max-tilt')),
+                aberration: parseFloat(getVar('--lg-aberration')),
+                magneticPull: parseFloat(getVar('--lg-magnetic-pull')),
+                enableOrb: orbEnabled,
+            };
+
+            LiquidGlass.init('.my-glass-card', { ...shared });
+            LiquidGlass.init('.my-glass-card--circle', { ...shared });
+            LiquidGlass.init('.my-glass-card--square', {
+                ...shared,
+                bezelWidth: 15,
+                refractionScale: 2,
+                magneticPull: 0,
+                refractiveIndex: 2,
+            });
+
+            // Ripple
+            document.querySelectorAll('.my-glass-card,.my-glass-card--circle,.my-glass-card--square')
+                .forEach(card => {
+                    card.addEventListener('click', e => {
+                        LiquidGlass.addRipple(card, e, {
+                            color: hexToRgba(rippleOpts.color, 0.7),
+                            sizeMultiplier: rippleOpts.sizeMultiplier,
+                            durationMs: rippleOpts.durationMs,
+                        });
+                        log(`ripple on ${card.id || card.className.split(' ')[0]}`, 'live');
+                    });
+                });
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        // SLIDER INIT
+        // ═══════════════════════════════════════════════════════════════
+
+        function initSlider() {
+            sliderInstance?.destroy?.();
+            const container = document.getElementById('my-container');
+            container.innerHTML = '';
+            sliderInstance = LiquidGlass.createSlider(container, { ...sliderOpts });
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        // SWITCH INIT
+        // ═══════════════════════════════════════════════════════════════
+
+        function initSwitch() {
+            switchInstance?.destroy?.();
+            const container = document.getElementById('my-toggle');
+            container.innerHTML = '';
+
+            // Build opts — colorOn needs [r,g,b] array
+            const hex = document.getElementById('sw-colorOn').value;
+            const rgb = hexToRgbArr(hex);
+
+
+
+            switchInstance = LiquidGlass.createSwitch(container, {
+                ...switchOpts,
+                colorOn: [...rgb, 0.5],
+                colorOff: [225, 225, 225, 0.05],
+            });
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        // UTILS
+        // ═══════════════════════════════════════════════════════════════
+
+        function getVar(name) {
+            return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || '0';
+        }
+        function setVar(name, val) {
+            document.documentElement.style.setProperty(name, val);
+        }
+        function hexToRgba(hex, a = 1) {
+            const r = parseInt(hex.slice(1, 3), 16);
+            const g = parseInt(hex.slice(3, 5), 16);
+            const b = parseInt(hex.slice(5, 7), 16);
+            return `rgba(${r},${g},${b},${a})`;
+        }
+        function hexToRgbArr(hex) {
+            return [parseInt(hex.slice(1, 3), 16), parseInt(hex.slice(3, 5), 16), parseInt(hex.slice(5, 7), 16)];
+        }
+
+        // ── Logging ──────────────────────────────────────────────────
+        const logOutput = document.getElementById('log-output');
+        let logLines = [];
+        function log(msg, type = 'live') {
+            const now = new Date().toLocaleTimeString('en-US', { hour12: false });
+            const line = document.createElement('div');
+            line.className = `log-line${type === 'commit' ? ' commit' : type === 'warn' ? ' warn' : ''}`;
+            line.textContent = `${now}  ${msg}`;
+            logOutput.prepend(line);
+            logLines.unshift(line);
+            if (logLines.length > 80) { logLines.pop().remove(); }
+        }
+
+        // ── Toast ────────────────────────────────────────────────────
+        function showToast(msg = 'Copied!') {
+            const t = document.getElementById('toast');
+            t.textContent = msg;
+            t.classList.add('show');
+            setTimeout(() => t.classList.remove('show'), 2000);
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        // PANEL CONTROLS — wire every range/toggle/select generically
+        // ═══════════════════════════════════════════════════════════════
+
+        // Debounce timer for rebuilds that are expensive
+        const rebuildTimers = {};
+        function debounce(key, fn, delay = 320) {
+            clearTimeout(rebuildTimers[key]);
+            rebuildTimers[key] = setTimeout(fn, delay);
+        }
+
+        // Generic range slider wiring for CSS var controls (surface panel)
+        document.querySelectorAll('#panel-surface .ctrl[data-css]').forEach(ctrl => {
+            const cssVar = ctrl.dataset.css;
+            const input = ctrl.querySelector('input[type=range]');
+            const display = ctrl.querySelector('.ctrl-val');
+
+            input.addEventListener('input', () => {
+                display.textContent = parseFloat(input.value).toFixed(input.step.includes('.') ? 2 : 0);
+                setVar(cssVar, input.value);
+                debounce('surface', initSurfaces, 400);
+            });
         });
 
-        // Ripple
-        document.querySelectorAll('.my-glass-card,.my-glass-card--circle,.my-glass-card--square')
-            .forEach(card => {
-                card.addEventListener('click', e => {
-                    LiquidGlass.addRipple(card, e, {
-                        color:          hexToRgba(rippleOpts.color, 0.7),
-                        sizeMultiplier: rippleOpts.sizeMultiplier,
-                        durationMs:     rippleOpts.durationMs,
-                    });
-                    log(`ripple on ${card.id || card.className.split(' ')[0]}`, 'live');
-                });
-            });
-    }
+        // Ripple controls (not CSS vars)
+        const rippleSizeCtrl = document.getElementById('ripple-size-ctrl');
+        rippleSizeCtrl.querySelector('input').addEventListener('input', function () {
+            rippleSizeCtrl.querySelector('.ctrl-val').textContent = parseFloat(this.value).toFixed(1);
+            rippleOpts.sizeMultiplier = parseFloat(this.value);
+        });
+        const rippleDurCtrl = document.getElementById('ripple-dur-ctrl');
+        rippleDurCtrl.querySelector('input').addEventListener('input', function () {
+            rippleDurCtrl.querySelector('.ctrl-val').textContent = this.value;
+            rippleOpts.durationMs = parseInt(this.value);
+        });
+        document.getElementById('ripple-color').addEventListener('input', function () {
+            rippleOpts.color = this.value;
+        });
 
-    // ═══════════════════════════════════════════════════════════════
-    // SLIDER INIT
-    // ═══════════════════════════════════════════════════════════════
-
-    function initSlider() {
-        sliderInstance?.destroy?.();
-        const container = document.getElementById('my-container');
-        container.innerHTML = '';
-        sliderInstance = LiquidGlass.createSlider(container, { ...sliderOpts });
-    }
-
-    // ═══════════════════════════════════════════════════════════════
-    // SWITCH INIT
-    // ═══════════════════════════════════════════════════════════════
-
-    function initSwitch() {
-        switchInstance?.destroy?.();
-        const container = document.getElementById('my-toggle');
-        container.innerHTML = '';
-
-        // Build opts — colorOn needs [r,g,b] array
-        const hex = document.getElementById('sw-colorOn').value;
-        const rgb = hexToRgbArr(hex);
-
-
-
-        switchInstance = LiquidGlass.createSwitch(container, {
-            ...switchOpts,
-            colorOn:  [...rgb, 0.5],
-            colorOff:    [225,225,225,0.05],     });
-    }
-
-    // ═══════════════════════════════════════════════════════════════
-    // UTILS
-    // ═══════════════════════════════════════════════════════════════
-
-    function getVar(name) {
-        return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || '0';
-    }
-    function setVar(name, val) {
-        document.documentElement.style.setProperty(name, val);
-    }
-    function hexToRgba(hex, a = 1) {
-        const r = parseInt(hex.slice(1,3),16);
-        const g = parseInt(hex.slice(3,5),16);
-        const b = parseInt(hex.slice(5,7),16);
-        return `rgba(${r},${g},${b},${a})`;
-    }
-    function hexToRgbArr(hex) {
-        return [parseInt(hex.slice(1,3),16), parseInt(hex.slice(3,5),16), parseInt(hex.slice(5,7),16)];
-    }
-
-    // ── Logging ──────────────────────────────────────────────────
-    const logOutput = document.getElementById('log-output');
-    let logLines = [];
-    function log(msg, type = 'live') {
-        const now = new Date().toLocaleTimeString('en-US', { hour12: false });
-        const line = document.createElement('div');
-        line.className = `log-line${type === 'commit' ? ' commit' : type === 'warn' ? ' warn' : ''}`;
-        line.textContent = `${now}  ${msg}`;
-        logOutput.prepend(line);
-        logLines.unshift(line);
-        if (logLines.length > 80) { logLines.pop().remove(); }
-    }
-
-    // ── Toast ────────────────────────────────────────────────────
-    function showToast(msg = 'Copied!') {
-        const t = document.getElementById('toast');
-        t.textContent = msg;
-        t.classList.add('show');
-        setTimeout(() => t.classList.remove('show'), 2000);
-    }
-
-    // ═══════════════════════════════════════════════════════════════
-    // PANEL CONTROLS — wire every range/toggle/select generically
-    // ═══════════════════════════════════════════════════════════════
-
-    // Debounce timer for rebuilds that are expensive
-    const rebuildTimers = {};
-    function debounce(key, fn, delay = 320) {
-        clearTimeout(rebuildTimers[key]);
-        rebuildTimers[key] = setTimeout(fn, delay);
-    }
-
-    // Generic range slider wiring for CSS var controls (surface panel)
-    document.querySelectorAll('#panel-surface .ctrl[data-css]').forEach(ctrl => {
-        const cssVar  = ctrl.dataset.css;
-        const input   = ctrl.querySelector('input[type=range]');
-        const display = ctrl.querySelector('.ctrl-val');
-
-        input.addEventListener('input', () => {
-            display.textContent = parseFloat(input.value).toFixed(input.step.includes('.') ? 2 : 0);
-            setVar(cssVar, input.value);
+        // Orb toggle
+        document.getElementById('toggle-orb').addEventListener('click', function () {
+            this.classList.toggle('on');
+            orbEnabled = this.classList.contains('on');
             debounce('surface', initSurfaces, 400);
         });
-    });
 
-    // Ripple controls (not CSS vars)
-    const rippleSizeCtrl = document.getElementById('ripple-size-ctrl');
-    rippleSizeCtrl.querySelector('input').addEventListener('input', function() {
-        rippleSizeCtrl.querySelector('.ctrl-val').textContent = parseFloat(this.value).toFixed(1);
-        rippleOpts.sizeMultiplier = parseFloat(this.value);
-    });
-    const rippleDurCtrl = document.getElementById('ripple-dur-ctrl');
-    rippleDurCtrl.querySelector('input').addEventListener('input', function() {
-        rippleDurCtrl.querySelector('.ctrl-val').textContent = this.value;
-        rippleOpts.durationMs = parseInt(this.value);
-    });
-    document.getElementById('ripple-color').addEventListener('input', function() {
-        rippleOpts.color = this.value;
-    });
-
-    // Orb toggle
-    document.getElementById('toggle-orb').addEventListener('click', function() {
-        this.classList.toggle('on');
-        orbEnabled = this.classList.contains('on');
-        debounce('surface', initSurfaces, 400);
-    });
-
-    // Reset optics
-    document.getElementById('reset-optics').addEventListener('click', () => {
-        document.querySelectorAll('#panel-surface .ctrl[data-css]').forEach(ctrl => {
-            const input = ctrl.querySelector('input[type=range]');
-            const def   = ctrl.dataset.default;
-            if (!def) return;
-            input.value = def;
-            setVar(ctrl.dataset.css, def);
-            ctrl.querySelector('.ctrl-val').textContent = parseFloat(def).toFixed(input.step.includes('.') ? 2 : 0);
+        // Reset optics
+        document.getElementById('reset-optics').addEventListener('click', () => {
+            document.querySelectorAll('#panel-surface .ctrl[data-css]').forEach(ctrl => {
+                const input = ctrl.querySelector('input[type=range]');
+                const def = ctrl.dataset.default;
+                if (!def) return;
+                input.value = def;
+                setVar(ctrl.dataset.css, def);
+                ctrl.querySelector('.ctrl-val').textContent = parseFloat(def).toFixed(input.step.includes('.') ? 2 : 0);
+            });
+            debounce('surface', initSurfaces, 200);
         });
-        debounce('surface', initSurfaces, 200);
-    });
 
-    // ── Slider controls ──────────────────────────────────────────
-    function wireSliderRange(id, key) {
-        const ctrl  = document.getElementById(id);
-        if (!ctrl) return;
-        const input = ctrl.querySelector('input[type=range]');
-        const disp  = ctrl.querySelector('.ctrl-val');
-        input.addEventListener('input', () => {
-            const v = parseFloat(input.value);
-            disp.textContent = v.toFixed(input.step.includes('.') ? 2 : 0);
-            sliderOpts[key]  = v;
+        // ── Slider controls ──────────────────────────────────────────
+        function wireSliderRange(id, key) {
+            const ctrl = document.getElementById(id);
+            if (!ctrl) return;
+            const input = ctrl.querySelector('input[type=range]');
+            const disp = ctrl.querySelector('.ctrl-val');
+            input.addEventListener('input', () => {
+                const v = parseFloat(input.value);
+                disp.textContent = v.toFixed(input.step.includes('.') ? 2 : 0);
+                sliderOpts[key] = v;
+                debounce('slider', initSlider, 350);
+            });
+        }
+        wireSliderRange('sl-trackWidth', 'trackWidth');
+        wireSliderRange('sl-trackHeight', 'trackHeight');
+        wireSliderRange('sl-thumbWidth', 'thumbWidth');
+        wireSliderRange('sl-thumbHeight', 'thumbHeight');
+        wireSliderRange('sl-thumbRadius', 'thumbRadius');
+        wireSliderRange('sl-labelDecimals', 'labelDecimals');
+        wireSliderRange('sl-refractiveIndex', 'refractiveIndex');
+        wireSliderRange('sl-glassThickness', 'glassThickness');
+        wireSliderRange('sl-bezelWidth', 'bezelWidth');
+
+        document.getElementById('sl-trackFill').addEventListener('input', function () {
+            sliderOpts.trackFill = `linear-gradient(90deg,${this.value},${this.value}cc)`;
             debounce('slider', initSlider, 350);
         });
-    }
-    wireSliderRange('sl-trackWidth',      'trackWidth');
-    wireSliderRange('sl-trackHeight',     'trackHeight');
-    wireSliderRange('sl-thumbWidth',      'thumbWidth');
-    wireSliderRange('sl-thumbHeight',     'thumbHeight');
-    wireSliderRange('sl-thumbRadius',     'thumbRadius');
-    wireSliderRange('sl-labelDecimals',   'labelDecimals');
-    wireSliderRange('sl-refractiveIndex', 'refractiveIndex');
-    wireSliderRange('sl-glassThickness',  'glassThickness');
-    wireSliderRange('sl-bezelWidth',      'bezelWidth');
+        document.getElementById('sl-labelColor').addEventListener('input', function () {
+            sliderOpts.labelColor = hexToRgba(this.value, 0.9);
+            debounce('slider', initSlider, 350);
+        });
 
-    document.getElementById('sl-trackFill').addEventListener('input', function() {
-        sliderOpts.trackFill = `linear-gradient(90deg,${this.value},${this.value}cc)`;
-        debounce('slider', initSlider, 350);
-    });
-    document.getElementById('sl-labelColor').addEventListener('input', function() {
-        sliderOpts.labelColor = hexToRgba(this.value, 0.9);
-        debounce('slider', initSlider, 350);
-    });
+        // Label position segmented buttons
+        document.getElementById('sl-labelPos').querySelectorAll('.seg-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.getElementById('sl-labelPos').querySelectorAll('.seg-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                sliderOpts.labelPosition = btn.dataset.val || undefined;
+                debounce('slider', initSlider, 200);
+            });
+        });
 
-    // Label position segmented buttons
-    document.getElementById('sl-labelPos').querySelectorAll('.seg-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            document.getElementById('sl-labelPos').querySelectorAll('.seg-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            sliderOpts.labelPosition = btn.dataset.val || undefined;
+        // Sticky label toggle
+        document.getElementById('sl-labelSticky').addEventListener('click', function () {
+            this.classList.toggle('on');
+            sliderOpts.labelSticky = this.classList.contains('on');
             debounce('slider', initSlider, 200);
         });
-    });
 
-    // Sticky label toggle
-    document.getElementById('sl-labelSticky').addEventListener('click', function() {
-        this.classList.toggle('on');
-        sliderOpts.labelSticky = this.classList.contains('on');
-        debounce('slider', initSlider, 200);
-    });
+        // ── Switch controls ──────────────────────────────────────────
+        function wireSwitchRange(id, key) {
+            const ctrl = document.getElementById(id);
+            if (!ctrl) return;
+            const input = ctrl.querySelector('input[type=range]');
+            const disp = ctrl.querySelector('.ctrl-val');
+            input.addEventListener('input', () => {
+                const v = parseFloat(input.value);
+                disp.textContent = v.toFixed(input.step.includes('.') ? 2 : 0);
+                switchOpts[key] = v;
+                debounce('switch', initSwitch, 350);
+            });
+        }
+        wireSwitchRange('sw-trackWidth', 'trackWidth');
+        wireSwitchRange('sw-trackHeight', 'trackHeight');
+        wireSwitchRange('sw-thumbWidth', 'thumbWidth');
+        wireSwitchRange('sw-thumbHeight', 'thumbHeight');
+        wireSwitchRange('sw-thumbRadius', 'thumbRadius');
+        wireSwitchRange('sw-refractiveIndex', 'refractiveIndex');
+        wireSwitchRange('sw-glassThickness', 'glassThickness');
+        wireSwitchRange('sw-bezelWidth', 'bezelWidth');
 
-    // ── Switch controls ──────────────────────────────────────────
-    function wireSwitchRange(id, key) {
-        const ctrl  = document.getElementById(id);
-        if (!ctrl) return;
-        const input = ctrl.querySelector('input[type=range]');
-        const disp  = ctrl.querySelector('.ctrl-val');
-        input.addEventListener('input', () => {
-            const v     = parseFloat(input.value);
-            disp.textContent = v.toFixed(input.step.includes('.') ? 2 : 0);
-            switchOpts[key]  = v;
-            debounce('switch', initSwitch, 350);
+        document.getElementById('sw-iconOff').addEventListener('input', function () {
+            switchOpts.iconOff = this.value;
+            debounce('switch', initSwitch, 500);
         });
-    }
-    wireSwitchRange('sw-trackWidth',      'trackWidth');
-    wireSwitchRange('sw-trackHeight',     'trackHeight');
-    wireSwitchRange('sw-thumbWidth',      'thumbWidth');
-    wireSwitchRange('sw-thumbHeight',     'thumbHeight');
-    wireSwitchRange('sw-thumbRadius',     'thumbRadius');
-    wireSwitchRange('sw-refractiveIndex', 'refractiveIndex');
-    wireSwitchRange('sw-glassThickness',  'glassThickness');
-    wireSwitchRange('sw-bezelWidth',      'bezelWidth');
-
-    document.getElementById('sw-iconOff').addEventListener('input', function() {
-        switchOpts.iconOff = this.value;
-        debounce('switch', initSwitch, 500);
-    });
-    document.getElementById('sw-iconOn').addEventListener('input', function() {
-        switchOpts.iconOn = this.value;
-        debounce('switch', initSwitch, 500);
-    });
-    document.getElementById('sw-iconColorOff').addEventListener('input', function() {
-        switchOpts.iconColorOff = this.value;
-        debounce('switch', initSwitch, 300);
-    });
-    document.getElementById('sw-iconColorOn').addEventListener('input', function() {
-        switchOpts.iconColorOn = this.value;
-        debounce('switch', initSwitch, 300);
-    });
-    document.getElementById('sw-colorOn').addEventListener('input', () => debounce('switch', initSwitch, 300));
-
-    // ═══════════════════════════════════════════════════════════════
-    // TAB NAVIGATION
-    // ═══════════════════════════════════════════════════════════════
-
-    document.getElementById('main-tabs').querySelectorAll('.tab-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            activeTab = btn.dataset.tab;
-
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-
-            document.querySelectorAll('#canvas .tab-content').forEach(t => t.classList.remove('active'));
-            document.getElementById(`tab-${activeTab}`).classList.add('active');
-
-            document.querySelectorAll('#panel .tab-content').forEach(t => t.classList.remove('active'));
-            document.getElementById(`panel-${activeTab}`).classList.add('active');
+        document.getElementById('sw-iconOn').addEventListener('input', function () {
+            switchOpts.iconOn = this.value;
+            debounce('switch', initSwitch, 500);
         });
-    });
+        document.getElementById('sw-iconColorOff').addEventListener('input', function () {
+            switchOpts.iconColorOff = this.value;
+            debounce('switch', initSwitch, 300);
+        });
+        document.getElementById('sw-iconColorOn').addEventListener('input', function () {
+            switchOpts.iconColorOn = this.value;
+            debounce('switch', initSwitch, 300);
+        });
+        document.getElementById('sw-colorOn').addEventListener('input', () => debounce('switch', initSwitch, 300));
 
-    // ═══════════════════════════════════════════════════════════════
-    // RESET
-    // ═══════════════════════════════════════════════════════════════
+        // ═══════════════════════════════════════════════════════════════
+        // TAB NAVIGATION
+        // ═══════════════════════════════════════════════════════════════
 
-    document.getElementById('btn-reset').addEventListener('click', () => {
-        location.reload();
-    });
+        document.getElementById('main-tabs').querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                activeTab = btn.dataset.tab;
 
-    // ═══════════════════════════════════════════════════════════════
-    // SAVE
-    // ═══════════════════════════════════════════════════════════════
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+
+                document.querySelectorAll('#canvas .tab-content').forEach(t => t.classList.remove('active'));
+                document.getElementById(`tab-${activeTab}`).classList.add('active');
+
+                document.querySelectorAll('#panel .tab-content').forEach(t => t.classList.remove('active'));
+                document.getElementById(`panel-${activeTab}`).classList.add('active');
+            });
+        });
+
+        // ═══════════════════════════════════════════════════════════════
+        // RESET
+        // ═══════════════════════════════════════════════════════════════
+
+        document.getElementById('btn-reset').addEventListener('click', () => {
+            location.reload();
+        });
+
+        // ═══════════════════════════════════════════════════════════════
+        // SAVE
+        // ═══════════════════════════════════════════════════════════════
         document.getElementById('btn-hide').addEventListener('click', () => {
             document.getElementById('panel').classList.toggle('d-none');
         })
 
-    // ════════════════════════════════════════════════════════════════════════════════════════════
-    // EXPORT CODE
-    // ═══════════════════════════════════════════════════════════════
+        // ════════════════════════════════════════════════════════════════════════════════════════════
+        // EXPORT CODE
+        // ═══════════════════════════════════════════════════════════════
 
-    function buildCode() {
-        if (activeTab === 'surface') {
-            return `LiquidGlass.init('.my-glass-card', {
+        function buildCode() {
+            if (activeTab === 'surface') {
+                return `LiquidGlass.init('.my-glass-card', {
   backdrop: {
     blur:       ${getVar('--lg-blur')},
     saturation: ${getVar('--lg-saturation')},
@@ -1517,10 +1677,10 @@
   magneticPull:    ${getVar('--lg-magnetic-pull')},
   enableOrb:       ${orbEnabled},
 });`;
-        }
-        if (activeTab === 'slider') {
-            const pos = sliderOpts.labelPosition;
-            return `LiquidGlass.createSlider('#container', {
+            }
+            if (activeTab === 'slider') {
+                const pos = sliderOpts.labelPosition;
+                return `LiquidGlass.createSlider('#container', {
   trackWidth:      ${sliderOpts.trackWidth},
   trackHeight:     ${sliderOpts.trackHeight},
   thumbWidth:      ${sliderOpts.thumbWidth},
@@ -1536,12 +1696,12 @@
   onChange:  v => console.log('live:', v),
   onCommit:  v => console.log('committed:', v),
 });`;
-        }
-        if (activeTab === 'switch') {
-            const hex = document.getElementById('sw-colorOn').value;
-            const rgb = hexToRgbArr(hex);
-            const lbl = document.getElementById('sw-label').value.trim();
-            return `LiquidGlass.createSwitch('#toggle', {
+            }
+            if (activeTab === 'switch') {
+                const hex = document.getElementById('sw-colorOn').value;
+                const rgb = hexToRgbArr(hex);
+                const lbl = document.getElementById('sw-label').value.trim();
+                return `LiquidGlass.createSwitch('#toggle', {
   trackWidth:    ${switchOpts.trackWidth},
   trackHeight:   ${switchOpts.trackHeight},
   thumbWidth:    ${switchOpts.thumbWidth},
@@ -1558,35 +1718,36 @@
   bezelWidth:      ${switchOpts.bezelWidth},
   onChange: v => console.log('switch:', v ? 'ON' : 'OFF'),
 });`;
+            }
+            return '// Select a tab first';
         }
-        return '// Select a tab first';
-    }
 
-    document.getElementById('btn-code').addEventListener('click', () => {
-        document.getElementById('code-text').textContent = buildCode();
-        document.getElementById('code-output').classList.add('show');
-    });
-    document.getElementById('close-code').addEventListener('click', () => {
-        document.getElementById('code-output').classList.remove('show');
-    });
-    document.getElementById('copy-code').addEventListener('click', () => {
-        navigator.clipboard.writeText(document.getElementById('code-text').textContent)
-            .then(() => showToast('Copied!'));
-    });
-    document.getElementById('code-output').addEventListener('click', function(e) {
-        if (e.target === this) this.classList.remove('show');
-    });
+        document.getElementById('btn-code').addEventListener('click', () => {
+            document.getElementById('code-text').textContent = buildCode();
+            document.getElementById('code-output').classList.add('show');
+        });
+        document.getElementById('close-code').addEventListener('click', () => {
+            document.getElementById('code-output').classList.remove('show');
+        });
+        document.getElementById('copy-code').addEventListener('click', () => {
+            navigator.clipboard.writeText(document.getElementById('code-text').textContent)
+                .then(() => showToast('Copied!'));
+        });
+        document.getElementById('code-output').addEventListener('click', function (e) {
+            if (e.target === this) this.classList.remove('show');
+        });
 
-    // ═══════════════════════════════════════════════════════════════
-    // BOOT
-    // ═══════════════════════════════════════════════════════════════
+        // ═══════════════════════════════════════════════════════════════
+        // BOOT
+        // ═══════════════════════════════════════════════════════════════
 
-    document.addEventListener('DOMContentLoaded', () => {
-        initSurfaces();
-        initSlider();
-        initSwitch();
-        log('Playground ready', 'live');
-    });
-</script>
+        document.addEventListener('DOMContentLoaded', () => {
+            initSurfaces();
+            initSlider();
+            initSwitch();
+            log('Playground ready', 'live');
+        });
+    </script>
 </body>
+
 </html>

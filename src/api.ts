@@ -232,7 +232,7 @@ export class LiquidGlass {
      */
     static createSwitch(
         container: string | HTMLElement,
-        options: SwitchOptions = {}
+        options: SwitchOptions
     ): LiquidGlassSwitch {
         const el = typeof container === 'string'
             ? document.querySelector<HTMLElement>(container)!
