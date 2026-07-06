@@ -1,3 +1,12 @@
+//todo what i want to add next is that we should make such that we will be able to add maybe like a text or logo on the
+// switch while on the slider we will choose the location we want it to show the value be it at the buttom top write or
+// left or top if its at the top or bottom we can choose if we want it to be sticky like follow the thumb of the slider
+// as it slides throug the slide and even the way the number changes should be stylish like if we slide to increase the
+// number should be moving from top to butom like 1,2,3,4,5 almost like how a number change when you scroll your clock
+// on the apple alarm
+
+import type {LiquidGlassOptions, RippleOptions, SliderOptions, SwitchOptions, FilterCacheResult} from "./Types.ts";
+
 /**
  * ============================================================
  * LIQUID GLASS LIBRARY (v4 - TypeScript Edition)
@@ -33,101 +42,6 @@
  *   LiquidGlass.addRipple(element, e);
  * });
  */
-
-/**
- * Configuration options for LiquidGlass surfaces
- *
- * All properties are optional and will fall back to sensible defaults or CSS variables.
- */
-export interface LiquidGlassOptions {
-    /** Refractive index of the glass material (affects refraction intensity). Default: 1.6 */
-    refractiveIndex?: number;
-
-    /** Virtual glass thickness in pixels (affects displacement map). Default: 120 */
-    glassThickness?: number;
-
-    backdrop:{
-        /** Amount of background blur (stdDeviation for feGaussianBlur). Default: 0.6 */
-        blur?: number;
-
-        /** Color saturation multiplier (1 = normal, >1 = vibrant). Default: 1.35 */
-        saturation?: number;
-
-        /** Brightness multiplier (1 = normal, <1 = darker, >1 = brighter). Default: 1.0 */
-        brightness?: number;
-
-        /** Respect system prefers-reduced-motion setting. Default: false */
-        reducedMotion?: boolean;
-    }
-    /** Width of the glass bezel/border in pixels. Default: 28 */
-    bezelWidth?: number;
-
-    /** Global scale multiplier for refraction intensity. Default: 1.2 */
-    refractionScale?: number;
-
-    /** Alpha (opacity) value for the specular highlight (0-1). Default: 0.75 */
-    specularAlpha?: number;
-
-    /** Maximum tilt angle in degrees when tilting based on pointer. Default: 7 */
-    maxTilt?: number;
-
-    /** Respect system prefers-reduced-motion setting. Default: false */
-    reducedMotion?: boolean;
-
-    /** Enable the ambient orb effect following the pointer. Default: true */
-    enableOrb?: boolean;
-
-    /** Color of the orb as an rgba() string. Default: 'rgba(120,130,255,.13)' */
-    orbColor?: string;
-
-    /** Enable mobile device orientation (gyroscope) support. Default: true */
-    enableMobileSupport?: boolean;
-
-    /** Intensity of the RGB split / Chromatic Aberration. Default: 0.05 */
-    aberration?: number;
-    /** Maximum distance in pixels the element will move towards the cursor. Default: 15 */
-    magneticPull?: number;
-
-}
-
-/**
- * Internal result of a built/cached glass filter
- * Used to track SVG filter elements and their properties
- */
-interface FilterCacheResult {
-    /** Unique ID of the SVG filter element */
-    id: string;
-
-    /** Maximum displacement magnitude from the displacement map */
-    maxDisp: number;
-
-    /** Reference to the feDisplacementMap element for runtime scale updates */
-    mapElR: SVGFEDisplacementMapElement | null;
-    mapElG: SVGFEDisplacementMapElement | null;
-    mapElB: SVGFEDisplacementMapElement | null;
-
-    offsetR: SVGFEOffsetElement | null;
-    offsetB: SVGFEOffsetElement | null;
-
-    /** Reference to the SVG element containing the filter definition */
-    svg: SVGSVGElement;
-}
-
-export interface RippleOptions {
-    /** The color of the ripple gradient. */
-    color?: string;
-    /** How large the ripple grows relative to the element's size. Default: 4 */
-    sizeMultiplier?: number;
-    /** Animation duration in milliseconds. Default: 4000 */
-    durationMs?: number;
-    /** CSS easing function. Default: 'cubic-bezier(.16,1,.3,1)' */
-    easing?: string;
-    /** Starting opacity of the ripple. Default: 1 */
-    startOpacity?: number;
-    /** Ending opacity of the ripple. Default: 0 */
-    endOpacity?: number;
-}
-
 /**
  * Physics-based spring animation utility
  *
@@ -167,16 +81,24 @@ class Spring {
      * Set the target value to animate toward
      * @param t New target value
      */
-    setTarget(t: number):void { this.target = t; }
+    setTarget(t: number): void {
+        this.target = t;
+    }
 
-    public getTarget(): number { return this.target; }
-    public getValue(): number { return this.value; }
+    public getTarget(): number {
+        return this.target;
+    }
+
+    public getValue(): number {
+        return this.value;
+    }
+
     /**
      * Update the spring for a time step
      * @param dt Delta time in seconds (typically 0.016 for 60fps)
      * @return Current value after this frame
      */
-    update(dt: number):number {
+    update(dt: number): number {
         const f: number = (this.target - this.value) * this.stiffness;
         const dmp: number = this.velocity * this.damping;
         this.velocity += (f - dmp) * dt;
@@ -205,7 +127,7 @@ class Spring {
  *
  * These utilities handle all the optics calculations needed for the glass effect.
  */
-class MathUtils  {
+class MathUtils {
     /**
      * Clamp a value between min and max bounds
      * @param v Value to clamp
@@ -213,7 +135,7 @@ class MathUtils  {
      * @param hi Upper bound (inclusive)
      * @return Clamped value
      */
-    public static clamp (v: number, lo: number, hi: number):number{
+    public static clamp(v: number, lo: number, hi: number): number {
         return Math.min(Math.max(v, lo), hi);
     }
 
@@ -223,7 +145,7 @@ class MathUtils  {
      * @param x Input from 0 to 1
      * @return Smoothly curved value from 0 to 1
      */
-    public static surfaceProfile (x: number): number {
+    public static surfaceProfile(x: number): number {
         return Math.pow(1 - Math.pow(1 - x, 4), 0.25);
     }
 
@@ -261,7 +183,7 @@ class MathUtils  {
      * @param src Image URL (http/https URLs get CORS enabled)
      * @return Promise resolving to the loaded HTMLImageElement
      */
-    public static loadImage (src: string): Promise<HTMLImageElement> {
+    public static loadImage(src: string): Promise<HTMLImageElement> {
         return new Promise((resolve, reject) => {
             const img = new Image();
             if (src.startsWith('http')) img.crossOrigin = "Anonymous";
@@ -285,50 +207,50 @@ class MathUtils  {
      * @param maxD Maximum displacement magnitude for scaling
      * @return ImageData containing normalized displacement vectors (R=X, G=Y)
      */
-    public static calculateDisplacementFromAlpha (maskImg: HTMLImageElement, W: number, H: number, _bw: number, maxD: number):ImageData {
-            const canvas = document.createElement('canvas');
-            canvas.width = W;
-            canvas.height = H;
-            const ctx = canvas.getContext('2d', {willReadFrequently: true});
-            if (!ctx) return new ImageData(W, H);
+    public static calculateDisplacementFromAlpha(maskImg: HTMLImageElement, W: number, H: number, _bw: number, maxD: number): ImageData {
+        const canvas = document.createElement('canvas');
+        canvas.width = W;
+        canvas.height = H;
+        const ctx = canvas.getContext('2d', {willReadFrequently: true});
+        if (!ctx) return new ImageData(W, H);
 
-            // Draw the mask and extract pixel data
-            ctx.drawImage(maskImg, 0, 0, W, H);
-            const srcData = ctx.getImageData(0, 0, W, H).data;
-            const outImg = new ImageData(W, H);
-            const outData = outImg.data;
+        // Draw the mask and extract pixel data
+        ctx.drawImage(maskImg, 0, 0, W, H);
+        const srcData = ctx.getImageData(0, 0, W, H).data;
+        const outImg = new ImageData(W, H);
+        const outData = outImg.data;
 
-            // Initialize with neutral displacement (128 = no offset)
-            for (let i = 0; i < outData.length; i += 4) {
-                outData[i] = outData[i + 1] = 128;
-                outData[i + 3] = 255;
-            }
+        // Initialize with neutral displacement (128 = no offset)
+        for (let i = 0; i < outData.length; i += 4) {
+            outData[i] = outData[i + 1] = 128;
+            outData[i + 3] = 255;
+        }
 
-            // Calculate displacement from alpha gradients using Sobel-like edge detection
-            for (let y = 1; y < H - 1; y++) {
-                for (let x = 1; x < W - 1; x++) {
-                    const idx = (y * W + x) * 4;
-                    const alpha = srcData[idx + 3];
+        // Calculate displacement from alpha gradients using Sobel-like edge detection
+        for (let y = 1; y < H - 1; y++) {
+            for (let x = 1; x < W - 1; x++) {
+                const idx = (y * W + x) * 4;
+                const alpha = srcData[idx + 3];
 
-                    if (alpha > 0) {
-                        // Sample neighbors
-                        const aTop = srcData[((y - 1) * W + x) * 4 + 3] || 0;
-                        const aBot = srcData[((y + 1) * W + x) * 4 + 3] || 0;
-                        const aLef = srcData[(y * W + (x - 1)) * 4 + 3] || 0;
-                        const aRig = srcData[(y * W + (x + 1)) * 4 + 3] || 0;
+                if (alpha > 0) {
+                    // Sample neighbors
+                    const aTop = srcData[((y - 1) * W + x) * 4 + 3] || 0;
+                    const aBot = srcData[((y + 1) * W + x) * 4 + 3] || 0;
+                    const aLef = srcData[(y * W + (x - 1)) * 4 + 3] || 0;
+                    const aRig = srcData[(y * W + (x + 1)) * 4 + 3] || 0;
 
-                        // Compute gradients (normalized -1 to 1)
-                        const dX = (aLef - aRig) / 255;
-                        const dY = (aTop - aBot) / 255;
+                    // Compute gradients (normalized -1 to 1)
+                    const dX = (aLef - aRig) / 255;
+                    const dY = (aTop - aBot) / 255;
 
-                        // Encode as normalized displacement (127 = -1, 128 = 0, 255 = +1)
-                        outData[idx] = Math.max(0, Math.min(255, 128 + dX * 127 * (maxD || 1)));
-                        outData[idx + 1] = Math.max(0, Math.min(255, 128 + dY * 127 * (maxD || 1)));
-                    }
+                    // Encode as normalized displacement (127 = -1, 128 = 0, 255 = +1)
+                    outData[idx] = Math.max(0, Math.min(255, 128 + dX * 127 * (maxD || 1)));
+                    outData[idx + 1] = Math.max(0, Math.min(255, 128 + dY * 127 * (maxD || 1)));
                 }
             }
-            return outImg;
         }
+        return outImg;
+    }
 
     /**
      * Calculate 1D refraction profile using Snell's law
@@ -347,7 +269,6 @@ class MathUtils  {
         const eta = 1 / ri;
         const etaSq = eta * eta;
 
-        // 1. Use TypedArray for contiguous memory and zero GC overhead
         const result = new Float32Array(samples);
         const dxOffset = 0.0001;
 
@@ -355,9 +276,6 @@ class MathUtils  {
             const x = i / samples;
             const y = this.surfaceProfile(x);
 
-            // 2. Corrected Finite Difference
-            // Dynamically calculate the actual delta-x to prevent derivative
-            // halving at the absolute edges (x=0 and x=1)
             const xPlus = Math.min(1, x + dxOffset);
             const xMinus = Math.max(0, x - dxOffset);
             const actualDx = xPlus - xMinus;
@@ -398,6 +316,7 @@ class MathUtils  {
 
         return result;
     }
+
     /**
      * Calculate 2D displacement map for a rounded rectangle glass effect
      *
@@ -420,7 +339,7 @@ class MathUtils  {
         oW: number, oH: number,
         rad: number, bw: number,
         maxD: number,
-        profile: Float32Array // Now accepting the optimized TypedArray
+        profile: Float32Array
     ): ImageData {
         const img = new ImageData(cW, cH);
 
@@ -485,6 +404,7 @@ class MathUtils  {
         }
         return img;
     }
+
     /**
      * Calculate specular (shine) highlight for glass reflection
      *
@@ -496,7 +416,7 @@ class MathUtils  {
      * @param rad Border radius
      * @return ImageData with specular intensity (R=G=B=intensity, A=alpha)
      */
-    public static calculateSpecularHighlight (oW: number, oH: number, rad: number)  {
+    public static calculateSpecularHighlight(oW: number, oH: number, rad: number) {
         const img = new ImageData(oW, oH);
         const data = img.data;
         const light = [Math.cos(Math.PI / 3), Math.sin(Math.PI / 3)]; // light direction
@@ -540,12 +460,12 @@ class MathUtils  {
      * @param d ImageData to convert
      * @return Promise resolving to an object URL (blob:// path)
      */
-    public static imageDataToObjectURL (d: ImageData): Promise<string>  {
+    public static imageDataToObjectURL(d: ImageData): Promise<string> {
         return new Promise(resolve => {
             const c = document.createElement("canvas");
             c.width = d.width;
             c.height = d.height;
-            c.getContext("2d",{willReadFrequently:true})?.putImageData(d, 0, 0);
+            c.getContext("2d", {willReadFrequently: true})?.putImageData(d, 0, 0);
             c.toBlob(blob => resolve(URL.createObjectURL(blob as Blob)), "image/png");
         });
     }
@@ -578,7 +498,7 @@ async function buildGlassFilterAsync(
     const rect = el.getBoundingClientRect();
     const W = Math.round(rect.width) || 100;
     const H = Math.round(rect.height) || 100;
-    const R =MathUtils.parseRadius(el, W, H);
+    const R = MathUtils.parseRadius(el, W, H);
     const maskUrl = el.getAttribute('data-lg-mask');
 
     // Create cache key from element dimensions and properties
@@ -592,7 +512,7 @@ async function buildGlassFilterAsync(
     const mapIdG = `${id}-map-g`;
     const mapIdB = `${id}-map-b`;
     // Calculate the refraction profile for this glass configuration
-    const profile = MathUtils.calculateDisplacementMap1D(opts.glassThickness, opts.bezelWidth,  opts.refractiveIndex);
+    const profile = MathUtils.calculateDisplacementMap1D(opts.glassThickness, opts.bezelWidth, opts.refractiveIndex);
     const maxDisp = Math.max(...profile.map(Math.abs)) || 1;
 
     let dispData: ImageData;
@@ -607,7 +527,7 @@ async function buildGlassFilterAsync(
 
         // Apply mask to element
         el.style.maskImage = `url('${maskUrl}')`;
-        el.style.setProperty('--webkitMaskImage',`url('${maskUrl}')`);
+        el.style.setProperty('--webkitMaskImage', `url('${maskUrl}')`);
         el.style.maskSize = '100% 100%';
         el.style.setProperty('--webkitMaskSize', '100% 100%');
         el.style.maskRepeat = 'no-repeat';
@@ -694,11 +614,11 @@ async function buildGlassFilterAsync(
  *
  * Each instance is cached in LiquidGlass.instances for lifecycle management.
  */
- class LiquidGlassSurface {
+class LiquidGlassSurface {
     private readonly el: HTMLElement;
     private readonly cacheMap: Map<string, FilterCacheResult>;
     private jsOptions: LiquidGlassOptions;
-    private _af: number | null; // animation frame request ID
+    private _af: number | null;
     private lastTime: number;
     private opts!: Required<Omit<LiquidGlassOptions, 'enableOrb' | 'orbColor' | 'enableMobileSupport'>>;
     private sp: {
@@ -715,7 +635,7 @@ async function buildGlassFilterAsync(
         transX: Spring;
         transY: Spring;
     };
-    private _inner?: HTMLDivElement; // shine gradient overlay
+    private _inner?: HTMLDivElement;
     private _filter?: FilterCacheResult;
     private _resizeObserver?: ResizeObserver;
     private _lastW?: number;
@@ -780,9 +700,9 @@ async function buildGlassFilterAsync(
             specularAlpha: MathUtils.getCssVar(this.el, '--lg-specular-alpha', this.jsOptions.specularAlpha || 0.75),
             maxTilt: MathUtils.getCssVar(this.el, '--lg-max-tilt', this.jsOptions.maxTilt || 7),
             reducedMotion: this.jsOptions.reducedMotion ?? window.matchMedia('(prefers-reduced-motion: reduce)').matches,
-            aberration:MathUtils.getCssVar(this.el, '--lg-aberration', this.jsOptions.aberration ?? 0.05),
+            aberration: MathUtils.getCssVar(this.el, '--lg-aberration', this.jsOptions.aberration ?? 0.05),
             magneticPull: MathUtils.getCssVar(this.el, '--lg-magnetic-pull', this.jsOptions.magneticPull ?? 15),
-            backdrop:{
+            backdrop: {
                 blur: MathUtils.getCssVar(this.el, '--lg-blur', this.jsOptions.backdrop?.blur ?? 6),
                 saturation: MathUtils.getCssVar(this.el, '--lg-saturation', this.jsOptions.backdrop?.saturation ?? 1.35),
                 brightness: MathUtils.getCssVar(this.el, '--lg-brightness', this.jsOptions.backdrop?.brightness ?? 1.0),
@@ -866,7 +786,8 @@ async function buildGlassFilterAsync(
 
         // Reduced motion mode: apply changes instantly
         if (this.opts.reducedMotion) {
-            this.el.style.transform = `perspective(900px) translate3d(${nx * this.opts.magneticPull}px, ${ny * this.opts.magneticPull}px, 0) rotateX(${ny * -this.opts.maxTilt}deg) rotateY(${nx * this.opts.maxTilt}deg)`;            const sy = 12 + Math.abs(ny) * 14, sb = 18 + Math.abs(ny) * 22, sa = 0.18 + Math.abs(ny) * 0.14;
+            this.el.style.transform = `perspective(900px) translate3d(${nx * this.opts.magneticPull}px, ${ny * this.opts.magneticPull}px, 0) rotateX(${ny * -this.opts.maxTilt}deg) rotateY(${nx * this.opts.maxTilt}deg)`;
+            const sy = 12 + Math.abs(ny) * 14, sb = 18 + Math.abs(ny) * 22, sa = 0.18 + Math.abs(ny) * 0.14;
             this.el.style.boxShadow = `0 ${sy}px ${sb}px rgba(0,0,0,${sa})`;
             if (this._filter?.mapElG) {
                 if (this._filter?.mapElG) {
@@ -874,7 +795,8 @@ async function buildGlassFilterAsync(
                     this._filter.mapElR?.setAttribute('scale', (baseScale * (1 - this.opts.aberration)).toString());
                     this._filter.mapElG?.setAttribute('scale', baseScale.toString());
                     this._filter.mapElB?.setAttribute('scale', (baseScale * (1 + this.opts.aberration)).toString());
-                }  }
+                }
+            }
             return;
         }
 
@@ -900,7 +822,8 @@ async function buildGlassFilterAsync(
      */
     rest() {
         if (this.opts.reducedMotion) {
-            this.el.style.transform = `perspective(900px) translate3d(0px, 0px, 0) rotateX(0deg) rotateY(0deg)`;            this.el.style.boxShadow = `0 4px 12px rgba(0,0,0,0.12)`;
+            this.el.style.transform = `perspective(900px) translate3d(0px, 0px, 0) rotateX(0deg) rotateY(0deg)`;
+            this.el.style.boxShadow = `0 4px 12px rgba(0,0,0,0.12)`;
             if (this._filter?.mapElG) {
                 const baseScale = this._filter.maxDisp * this.opts.refractionScale;
                 this._filter.mapElR?.setAttribute('scale', (baseScale * (1 - this.opts.aberration)).toString());
@@ -941,7 +864,7 @@ async function buildGlassFilterAsync(
      */
     private _loop(ts?: number) {
         const now = ts || performance.now();
-        const dt = Math.min((now - this.lastTime) / 1000, 0.032); // cap at 32ms
+        const dt = Math.min((now - this.lastTime) / 1000, 0.032);
         this.lastTime = now;
 
         // Update all spring animations
@@ -1011,6 +934,768 @@ async function buildGlassFilterAsync(
     }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// LIQUID GLASS SLIDER
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * A physics-driven glass slider thumb.
+ *
+ * Architecture:
+ *   • Builds its own SVG filter via buildGlassFilterAsync (shared cache)
+ *   • Owns three springs: scale (squish), brightness (press feedback),
+ *     and refractionSpring (displacement animation during press)
+ *   • Manages all pointer events internally; exposes value via callbacks
+ *   • Dual render path: backdrop-filter url() on Chrome, clone-world filter
+ *     fallback on other browsers — same detection as demo.html
+ *
+ * DOM structure injected into `container`:
+ *   .lg-slider-track
+ *     .lg-slider-track-inner
+ *       .lg-slider-fill
+ *     .lg-slider-thumb               ← glass element
+ *       .lg-slider-thumb-clone       ← clone-world fallback
+ *         .lg-slider-thumb-clone-inner
+ *       .lg-slider-thumb-inner       ← receives backdrop-filter or filter
+ *       <svg> … filter definition …
+ */
+export class LiquidGlassSlider {
+    // ── Resolved configuration ───────────────────────────────────────────────
+    private readonly cfg: Required<SliderOptions>;
+    private readonly filterCache: Map<string, FilterCacheResult>;
+
+    // ── State ────────────────────────────────────────────────────────────────
+    private value: number;         // 0–100
+    private isPressed = false;
+    // @ts-ignore
+    private dragStartX = 0;
+
+    // ── Springs ──────────────────────────────────────────────────────────────
+    // Stiffness/damping values match the original demo.html Pebble & Void numbers
+    // exactly — 2000/80 for scale and brightness, 100/10 for the refraction pulse.
+    private spScale = new Spring(0.6, 2000, 80);   // thumb scale
+    private spBrightness = new Spring(1, 2000, 80);   // thumb opacity
+    private spRefr = new Spring(0.4, 100, 10);   // disp map scale
+
+    // ── DOM refs ─────────────────────────────────────────────────────────────
+    private track!: HTMLElement;
+    private fill!: HTMLElement;
+    private thumb!: HTMLElement;
+    private thumbInner!: HTMLElement;
+    private cloneInner!: HTMLElement;
+
+    // ── Filter ───────────────────────────────────────────────────────────────
+    private filter?: FilterCacheResult;
+    private filterId?: string;
+    private maxDisp = 0;
+    private rafId: number | null = null;
+
+    // ── Feature detection ─────────────────────────────────────────────────────
+    /** True when backdrop-filter: url() is supported (Chrome ≥ 76). */
+    private static _useBackdrop: boolean | null = null;
+    private static get useBackdrop(): boolean {
+        if (this._useBackdrop === null) {
+            const t = document.createElement('div');
+            t.style.backdropFilter = 'url(#test)';
+            this._useBackdrop = !!(window as any).chrome && t.style.backdropFilter.includes('url');
+        }
+        return this._useBackdrop;
+    }
+
+    constructor(
+        private container: HTMLElement,
+        options: SliderOptions = {},
+        filterCache: Map<string, FilterCacheResult> = new Map()
+    ) {
+        // Merge with defaults — every field guaranteed non-optional from here on
+        this.cfg = {
+            refractiveIndex: options.refractiveIndex ?? 1.45,
+            glassThickness: options.glassThickness ?? 80,
+            bezelWidth: options.bezelWidth ?? 16,
+            refractionScale: options.refractionScale ?? 1.2,
+            specularAlpha: options.specularAlpha ?? 0.4,
+            trackWidth: options.trackWidth ?? 330,
+            trackHeight: options.trackHeight ?? 18,
+            trackFill: options.trackFill ?? 'linear-gradient(90deg,#3b82f6,#60a5fa)',
+            trackBackground: options.trackBackground ?? 'rgba(255,255,255,0.05)',
+            thumbWidth: options.thumbWidth ?? 90,
+            thumbHeight: options.thumbHeight ?? 60,
+            thumbRadius: options.thumbRadius ?? 30,
+            pressScale: options.pressScale ?? 1,   // full-size on press (squish via spring)
+            value: options.value ?? 10,
+            onChange: options.onChange ?? (() => {
+            }),
+            onCommit: options.onCommit ?? (() => {
+            }),
+        };
+        this.filterCache = filterCache;
+        this.value = this.cfg.value;
+
+        // Initialise spring at the at-rest thumb scale
+        const restScale = this.cfg.thumbHeight / this.cfg.thumbWidth;
+        this.spScale = new Spring(restScale, 2000, 80);
+
+        this._buildDOM();
+        this._buildFilter();
+        this._bindEvents();
+        this._updatePosition();
+    }
+
+    // ── DOM construction ─────────────────────────────────────────────────────
+
+    /** Injects the full slider DOM into this.container. */
+    private _buildDOM(): void {
+        const {
+            trackWidth, trackHeight, thumbWidth, thumbHeight, thumbRadius,
+            trackFill, trackBackground
+        } = this.cfg;
+
+        this.container.style.position = 'relative';
+        this.container.innerHTML = `
+          <div class="lg-slider-track" style="
+            display:inline-block; 
+            position:absolute;
+            width:${trackWidth}px;
+            height:${trackHeight}px;
+            left:0; top:${(thumbHeight - trackHeight) / 2}px;
+            background:${trackBackground};
+            border-radius:${trackHeight}px;
+            box-shadow:inset 0 2px 4px rgba(0,0,0,0.5);
+          ">
+            <div class="lg-slider-track-inner" style="
+              width:100%; height:100%; overflow:hidden; border-radius:inherit;
+            ">
+              <div class="lg-slider-fill" style="
+                height:100%; width:${this.value}%;
+                background:${trackFill};
+                border-radius:inherit;
+                box-shadow:0 0 10px rgba(59,130,246,0.5);
+              "></div>
+            </div>
+          </div>
+          <div class="lg-slider-thumb" style="
+            position:absolute;
+
+            width:${thumbWidth}px; height:${thumbHeight}px;
+            top:0; border-radius:${thumbRadius}px;
+            transform-origin:center center;
+            cursor:pointer; touch-action:none; user-select:none;
+            background-color:rgba(255,255,255,1);
+            box-shadow:0 3px 14px rgba(0,0,0,0.3);
+            overflow:hidden; will-change:transform,background-color; z-index:10;
+          ">
+            <div class="lg-slider-thumb-clone" style="
+              position:absolute; top:0; left:0; width:100%; height:100%;
+              overflow:hidden; border-radius:inherit; z-index:1; opacity:0;
+              will-change:opacity;
+              ${LiquidGlassSlider.useBackdrop ? 'display:none;' : ''}
+            ">
+              <div class="lg-slider-thumb-clone-inner" style="
+                position:absolute; top:0; left:0; pointer-events:none;
+              "></div>
+            </div>
+            <div class="lg-slider-thumb-inner" style="
+              position:absolute; top:0; left:0; width:100%; height:100%;
+              border-radius:inherit; z-index:3; pointer-events:none;
+            "></div>
+            <svg style="width:0;height:0;position:absolute;" aria-hidden="true">
+              <defs></defs>
+            </svg>
+          </div>`;
+
+        this.container.style.width = `${trackWidth}px`;
+        this.container.style.height = `${thumbHeight}px`;
+
+        this.track = this.container.querySelector('.lg-slider-track')!;
+        this.fill = this.container.querySelector('.lg-slider-fill')!;
+        this.thumb = this.container.querySelector('.lg-slider-thumb')!;
+        this.thumbInner = this.container.querySelector('.lg-slider-thumb-inner')!;
+        this.cloneInner = this.container.querySelector('.lg-slider-thumb-clone-inner')!;
+    }
+
+    // ── Filter construction ──────────────────────────────────────────────────
+
+    /**
+     * Builds the SVG filter for this slider's thumb dimensions.
+     * Runs async but the thumb is interactive immediately — filter
+     * upgrades visually once the promise resolves.
+     */
+    private async _buildFilter(): Promise<void> {
+        const {
+            thumbWidth: W, thumbHeight: H, thumbRadius: R,
+            glassThickness, bezelWidth, refractiveIndex,
+            refractionScale, specularAlpha
+        } = this.cfg;
+
+        // Synthesise a minimal opts object compatible with buildGlassFilterAsync
+        const opts = {
+            glassThickness, bezelWidth, refractiveIndex,
+            refractionScale, specularAlpha,
+            backdrop: {blur: 0, saturation: 7, brightness: 1.0},
+            maxTilt: 0, reducedMotion: false,
+            aberration: 0, magneticPull: 0,
+        } as Required<Omit<LiquidGlassOptions, 'enableOrb' | 'orbColor' | 'enableMobileSupport'>>;
+
+        // Temporarily fake el.getBoundingClientRect so buildGlassFilterAsync
+        // reads the exact thumb dimensions, not the container's.
+        const fakeEl = Object.assign(document.createElement('div'), {
+            style: {borderRadius: `${R}px`},
+            getBoundingClientRect: () => ({
+                width: W, height: H, top: 0, left: 0, right: W, bottom: H, x: 0, y: 0,
+                toJSON: () => {
+                }
+            }),
+            getAttribute: () => null,
+        }) as unknown as HTMLElement;
+
+        this.filter = await buildGlassFilterAsync(fakeEl, opts, this.filterCache);
+        this.maxDisp = this.filter.maxDisp;
+        this.filterId = this.filter.id;
+
+        // Wire the filter to the SVG element already in the DOM
+        const svgDefs = this.thumb.querySelector('svg defs')!;
+        svgDefs.parentElement!.replaceWith(this.filter.svg);
+
+        if (LiquidGlassSlider.useBackdrop) {
+            const bf = `url(#${this.filterId})`;
+            this.thumbInner.style.backdropFilter = bf;
+            (this.thumbInner.style as any).webkitBackdropFilter = bf;
+        } else {
+            this.cloneInner.style.filter = `url(#${this.filterId})`;
+            // Clone-world background must mirror the slider's parent scene
+            this.cloneInner.style.background =
+                getComputedStyle(this.container.parentElement || document.body).background;
+        }
+
+        // Kick the animation loop so the initial scale renders immediately
+        this._kick();
+    }
+
+    // ── Position / clone sync ────────────────────────────────────────────────
+
+    /**
+     * Positions the thumb and fill based on current value.
+     * Also repositions the clone-world inner so the background
+     * appears correctly offset inside the thumb's viewport.
+     */
+    private _updatePosition(): void {
+        const {trackWidth, thumbWidth, thumbHeight, trackHeight} = this.cfg;
+        const restScale = thumbHeight / thumbWidth;
+        const scaledW = thumbWidth * restScale;
+        const tx = scaledW / 2 + (this.value / 100) * (trackWidth - scaledW) - thumbWidth / 2;
+
+        this.thumb.style.left = `${tx}px`;
+        this.fill.style.width = `${this.value}%`;
+
+        this.cfg.onChange(this.value);
+
+        if (!LiquidGlassSlider.useBackdrop) {
+            const aR = this.container.getBoundingClientRect();
+            const cl = (aR.width - trackWidth) / 2;
+            const ct = (aR.height - thumbHeight) / 2;
+            this.cloneInner.style.width = `${aR.width}px`;
+            this.cloneInner.style.height = `${aR.height}px`;
+            this.cloneInner.style.transform = `translate(${-(cl + tx)}px, ${-ct}px)`;
+            // Track geometry replicated on the clone via CSS custom properties
+            this.cloneInner.style.setProperty('--lg-track-left', `${cl}px`);
+            this.cloneInner.style.setProperty('--lg-track-top', `${ct + (thumbHeight - trackHeight) / 2}px`);
+            this.cloneInner.style.setProperty('--lg-fill-pct', this.value.toString());
+        }
+    }
+
+    // ── Spring loop ──────────────────────────────────────────────────────────
+
+    private _kick(): void {
+        if (!this.rafId) this.rafId = requestAnimationFrame(() => this._loop());
+    }
+
+    private _loop(): void {
+        const dt = Math.min(0.032, 1 / 60);
+        const sc = this.spScale.update(dt);
+        const bo = this.spBrightness.update(dt);
+        const sr = this.spRefr.update(dt);
+
+        this.thumb.style.transform = `scale(${sc})`;
+        this.thumb.style.backgroundColor = `rgba(255,255,255,${bo})`;
+
+        // Clone fades in as thumb background fades out (glass reveals background)
+        const cloneEl = this.thumb.querySelector('.lg-slider-thumb-clone') as HTMLElement | null;
+        if (cloneEl) cloneEl.style.opacity = String(1 - bo);
+
+        // Drive the feDisplacementMap scale from the refraction spring
+        if (this.filter?.mapElG) {
+            const scale = (this.maxDisp * this.cfg.refractionScale * sr).toFixed(3);
+            this.filter.mapElR?.setAttribute('scale', scale);
+            this.filter.mapElG?.setAttribute('scale', scale);
+            this.filter.mapElB?.setAttribute('scale', scale);
+        }
+
+        if (!this.spScale.isSettled() || !this.spBrightness.isSettled() || !this.spRefr.isSettled()) {
+            this.rafId = requestAnimationFrame(() => this._loop());
+        } else {
+            this.rafId = null;
+        }
+    }
+
+    // ── Pointer events ───────────────────────────────────────────────────────
+
+    private _bindEvents(): void {
+        const {trackWidth, thumbWidth, thumbHeight} = this.cfg;
+        const restScale = thumbHeight / thumbWidth;
+        const pressScale = this.cfg.pressScale;
+
+        const onDown = (clientX: number) => {
+            this.isPressed = true;
+            this.dragStartX = clientX;
+            this.spScale.setTarget(pressScale);
+            this.spBrightness.setTarget(0.1);
+            this.spRefr.setTarget(0.9);
+            this._kick();
+        };
+
+        const onMove = (clientX: number) => {
+            if (!this.isPressed) return;
+            const scaledW = thumbWidth * restScale;
+            const trackRect = this.track.getBoundingClientRect();
+            const x0 = trackRect.left + scaledW / 2;
+            const usableW = trackWidth - scaledW;
+            const raw = ((Math.max(x0, Math.min(x0 + usableW, clientX)) - x0) / usableW) * 100;
+            this.value = Math.max(0, Math.min(100, raw));
+            this._updatePosition();
+        };
+
+        const onUp = () => {
+            if (!this.isPressed) return;
+            this.isPressed = false;
+            this.spScale.setTarget(restScale);
+            this.spBrightness.setTarget(1);
+            this.spRefr.setTarget(0.4);
+            this.cfg.onCommit(this.value);
+            this._kick();
+        };
+
+        this.thumb.addEventListener('pointerdown', e => {
+            e.preventDefault();
+            onDown(e.clientX);
+        });
+        window.addEventListener('pointermove', e => onMove(e.clientX));
+        window.addEventListener('pointerup', () => onUp());
+        window.addEventListener('resize', () => this._updatePosition());
+    }
+
+    // ── Public API ───────────────────────────────────────────────────────────
+
+    /** Programmatically set value 0–100 without triggering onCommit. */
+    setValue(v: number): void {
+        this.value = Math.max(0, Math.min(100, v));
+        this._updatePosition();
+    }
+
+    /** Read current value. */
+    getValue(): number {
+        return this.value;
+    }
+
+    /** Tear down springs, cancel rAF, clear DOM. */
+    destroy(): void {
+        if (this.rafId) cancelAnimationFrame(this.rafId);
+        this.filter?.svg.remove();
+        this.container.innerHTML = '';
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// LIQUID GLASS SWITCH
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * A physics-driven glass toggle switch.
+ *
+ * Architecture:
+ *   • Five springs mirror demo.html exactly:
+ *       xr   — thumb X travel (position along track)
+ *       sc   — scale squish on press
+ *       bo   — thumb white background brightness
+ *       tc   — track colour interpolation (off → on colour)
+ *       sr   — displacement map scale pulse
+ *   • Supports both click-to-toggle and drag-to-slide with
+ *     a rubber-band overshoot when dragged past the ends.
+ *   • Dual render path: backdrop-filter url() on Chrome, clone-world fallback.
+ *
+ * DOM structure injected into `container`:
+ *   .lg-switch-track                 ← tap target + colour container
+ *     .lg-switch-thumb               ← glass element
+ *       .lg-switch-thumb-clone
+ *         .lg-switch-thumb-clone-inner
+ *       .lg-switch-thumb-inner       ← backdrop-filter or filter target
+ *       <svg> … filter …
+ */
+export class LiquidGlassSwitch {
+    private readonly cfg: Required<SwitchOptions>;
+    private readonly filterCache: Map<string, FilterCacheResult>;
+
+    // ── State ────────────────────────────────────────────────────────────────
+    private checked: boolean;
+    private isPressed = false;
+    private dragStartX = 0;
+    private thumbRatio: number;   // 0=off, 1=on — updated during drag
+
+    // ── Springs ──────────────────────────────────────────────────────────────
+    // xr and tc are position/colour springs that run even when not pressed.
+    // sc, bo, sr are press-response springs.
+    private spXr = new Spring(1, 1000, 80);  // thumb position ratio 0–1
+    private spSc = new Spring(0.65, 2000, 80);  // scale
+    private spBo = new Spring(1, 2000, 80);  // brightness
+    private spTc = new Spring(1, 1000, 80);  // track colour 0=off, 1=on
+    private spSr = new Spring(0.4, 100, 10);  // refraction scale
+
+    // ── DOM refs ─────────────────────────────────────────────────────────────
+    private track!: HTMLElement;
+    private thumb!: HTMLElement;
+    private thumbInner!: HTMLElement;
+    private cloneInner!: HTMLElement;
+
+    // ── Filter ───────────────────────────────────────────────────────────────
+    private filter?: FilterCacheResult;
+    private filterId?: string;
+    private maxDisp = 0;
+    private rafId: number | null = null;
+
+    // ── Geometry cache (computed once after DOM is ready) ────────────────────
+    private geo!: {
+        thumbTravel: number;  // px the thumb centre can travel
+        restOffset: number;  // px offset at scale rest that keeps thumb centred
+    };
+
+    private static get useBackdrop(): boolean {
+        const t = document.createElement('div');
+        t.style.backdropFilter = 'url(#test)';
+        return !!(window as any).chrome && t.style.backdropFilter.includes('url');
+    }
+
+    constructor(
+        private readonly container: HTMLElement,
+        options: SwitchOptions = {},
+        filterCache: Map<string, FilterCacheResult> = new Map()
+    ) {
+        this.cfg = {
+            refractiveIndex: options.refractiveIndex ?? 1.5,
+            glassThickness: options.glassThickness ?? 47,
+            bezelWidth: options.bezelWidth ?? 19,
+            refractionScale: options.refractionScale ?? 1.2,
+            specularAlpha: options.specularAlpha ?? 0.5,
+            trackWidth: options.trackWidth ?? 160,
+            trackHeight: options.trackHeight ?? 67,
+            thumbWidth: options.thumbWidth ?? 146,
+            thumbHeight: options.thumbHeight ?? 92,
+            thumbRadius: options.thumbRadius ?? 46,
+            colorOff: options.colorOff ?? 'rgba(255,255,255,0.05)',
+            colorOn: options.colorOn ?? [139, 92, 246],
+            checked: options.checked ?? true,
+            onChange: options.onChange ?? (() => {
+            }),
+        };
+        this.filterCache = filterCache;
+        this.checked = this.cfg.checked;
+        this.thumbRatio = this.checked ? 1 : 0;
+
+        // Start springs at their settled values so there's no initial animation
+        this.spXr.setTarget(this.thumbRatio);
+        this.spTc.setTarget(this.thumbRatio);
+
+        this._buildDOM();
+        this._computeGeo();
+        this._buildFilter();
+        this._bindEvents();
+        this._kick(); // paint the initial position
+    }
+
+    // ── DOM construction ─────────────────────────────────────────────────────
+
+    private _buildDOM(): void {
+        const {trackWidth, trackHeight, thumbWidth, thumbHeight, thumbRadius} = this.cfg;
+
+        this.container.style.position = 'relative';
+        this.container.innerHTML = `
+          <div class="lg-switch-track" style="
+            display:inline-block; position:relative;
+            width:${trackWidth}px; height:${trackHeight}px;
+            background-color:rgba(255,255,255,0.05);
+            border-radius:${trackHeight}px;
+            cursor:pointer;
+            box-shadow:inset 0 2px 10px rgba(0,0,0,0.5);
+            border:1px solid rgba(255,255,255,0.05);
+            overflow:visible;
+          ">
+            <div class="lg-switch-thumb" style="
+              position:absolute;
+              width:${thumbWidth}px; height:${thumbHeight}px;
+              border-radius:${thumbRadius}px;
+              top:${trackHeight / 2}px;
+              transform:translateY(-50%) scale(0.65);
+              transform-origin:center center;
+              cursor:pointer; touch-action:none; user-select:none;
+              background-color:rgba(255,255,255,1);
+              box-shadow:0 10px 30px rgba(0,0,0,0.5);
+              overflow:hidden;
+              will-change:transform,left,background-color,box-shadow;
+              z-index:10;
+            "> 
+              <div class="lg-switch-thumb-clone" style="
+                position:absolute; top:0; left:0; width:100%; height:100%;
+                overflow:hidden; border-radius:inherit; z-index:1; opacity:0;
+                will-change:opacity;
+                ${LiquidGlassSwitch.useBackdrop ? 'display:none;' : ''}
+              ">
+                <div class="lg-switch-thumb-clone-inner" style="
+                  position:absolute; top:0; left:0; pointer-events:none;
+                "></div>
+              </div>
+              <div class="lg-switch-thumb-inner" style="
+                position:absolute; top:0; left:0; width:100%; height:100%;
+                border-radius:inherit; z-index:3; pointer-events:none;
+              "></div>
+              <svg style="width:0;height:0;position:absolute;" aria-hidden="true">
+                <defs></defs>
+              </svg>
+            </div>
+          </div>`;
+
+        this.track = this.container.querySelector('.lg-switch-track')!;
+        this.thumb = this.container.querySelector('.lg-switch-thumb')!;
+        this.thumbInner = this.container.querySelector('.lg-switch-thumb-inner')!;
+        this.cloneInner = this.container.querySelector('.lg-switch-thumb-clone-inner')!;
+    }
+
+    /** Computes geometry constants that depend on final CSS layout. */
+    private _computeGeo(): void {
+        const {trackWidth, trackHeight, thumbWidth, thumbHeight} = this.cfg;
+        const restScale = thumbHeight / thumbWidth;
+        const ro = ((1 - restScale) * thumbWidth) / 2;
+        const tr = trackWidth - trackHeight - (thumbWidth - thumbHeight) * restScale;
+        this.geo = {thumbTravel: tr, restOffset: ro};
+    }
+
+    // ── Filter construction ──────────────────────────────────────────────────
+
+    private async _buildFilter(): Promise<void> {
+        const {
+            thumbWidth: W, thumbHeight: H, thumbRadius: R,
+            glassThickness, bezelWidth, refractiveIndex,
+            refractionScale, specularAlpha
+        } = this.cfg;
+
+        const opts = {
+            glassThickness, bezelWidth, refractiveIndex,
+            refractionScale, specularAlpha,
+            backdrop: {blur: 0.2, saturation: 6, brightness: 1.0},
+            maxTilt: 0, reducedMotion: false,
+            aberration: 0, magneticPull: 0,
+        } as Required<Omit<LiquidGlassOptions, 'enableOrb' | 'orbColor' | 'enableMobileSupport'>>;
+
+        const fakeEl = Object.assign(document.createElement('div'), {
+            style: {borderRadius: `${R}px`},
+            getBoundingClientRect: () => ({
+                width: W, height: H, top: 0, left: 0, right: W, bottom: H, x: 0, y: 0,
+                toJSON: () => {
+                }
+            }),
+            getAttribute: () => null,
+        }) as unknown as HTMLElement;
+
+        this.filter = await buildGlassFilterAsync(fakeEl, opts, this.filterCache);
+        this.maxDisp = this.filter.maxDisp;
+        this.filterId = this.filter.id;
+
+        const svgDefs = this.thumb.querySelector('svg defs')!;
+        svgDefs.parentElement!.replaceWith(this.filter.svg);
+
+        if (LiquidGlassSwitch.useBackdrop) {
+            const bf = `url(#${this.filterId})`;
+            this.thumbInner.style.backdropFilter = bf;
+            (this.thumbInner.style as any).webkitBackdropFilter = bf;
+        } else {
+            this.cloneInner.style.filter = `url(#${this.filterId})`;
+            this.cloneInner.style.background =
+                getComputedStyle(this.container.parentElement || document.body).background;
+        }
+    }
+
+    // ── Spring loop ──────────────────────────────────────────────────────────
+
+    private _kick(): void {
+        if (!this.rafId) this.rafId = requestAnimationFrame(() => this._loop());
+    }
+
+    private _loop(): void {
+        const dt = Math.min(0.032, 1 / 60);
+        const {trackWidth, trackHeight, thumbWidth, thumbHeight} = this.cfg;
+        const {thumbTravel, restOffset} = this.geo;
+
+        // Settle springs that don't depend on press state every frame
+        if (!this.isPressed) {
+            this.spXr.setTarget(this.checked ? 1 : 0);
+        }
+        this.spTc.setTarget(
+            this.isPressed
+                ? (this.thumbRatio > 0.5 ? 1 : 0)
+                : (this.checked ? 1 : 0)
+        );
+
+        const xr = this.spXr.update(dt);
+        const sc = this.spSc.update(dt);
+        const bo = this.spBo.update(dt);
+        const tc = this.spTc.update(dt);
+        const sr = this.spSr.update(dt);
+
+        // Thumb X position — port of demo.html:
+        //   tx = -ro + (th - h * sr) / 2 + xr * tr
+        // where th=trackHeight, h=thumbHeight, sr=restScale (constant).
+        // sc is NOT used here — it only drives transform:scale(), not left.
+        const restScale = this.cfg.thumbHeight / this.cfg.thumbWidth;
+        const tx = -restOffset + (this.cfg.trackHeight - this.cfg.thumbHeight * restScale) / 2 + xr * thumbTravel;
+        this.thumb.style.left = `${tx}px`;
+        this.thumb.style.transform = `translateY(-50%) scale(${sc})`;
+        this.thumb.style.backgroundColor = `rgba(255,255,255,${bo})`;
+        this.thumb.style.boxShadow = this.isPressed
+            ? '0 4px 22px rgba(0,0,0,0.1),inset 2px 7px 24px rgba(0,0,0,0.09),inset -2px -7px 24px rgba(255,255,255,0.09)'
+            : '0 10px 30px rgba(0,0,0,0.5)';
+
+        // Clone fades in when thumb turns glass
+        const cloneEl = this.thumb.querySelector('.lg-switch-thumb-clone') as HTMLElement | null;
+        if (cloneEl) cloneEl.style.opacity = String(1 - bo);
+
+        // Track colour interpolation: off colour → on colour
+        const [or, og, ob] = this.cfg.colorOn;
+        const r = Math.round(255 + (or - 255) * tc);
+        const g = Math.round(255 + (og - 255) * tc);
+        const b = Math.round(255 + (ob - 255) * tc);
+        const a = 0.05 + 0.45 * tc;
+        this.track.style.backgroundColor = `rgba(${r},${g},${b},${a})`;
+
+        // Displacement scale
+        if (this.filter?.mapElG) {
+            const scale = (this.maxDisp * this.cfg.refractionScale * sr).toFixed(3);
+            this.filter.mapElR?.setAttribute('scale', scale);
+            this.filter.mapElG?.setAttribute('scale', scale);
+            this.filter.mapElB?.setAttribute('scale', scale);
+        }
+
+        // Clone-world repositioning (non-backdrop-filter path)
+        if (!LiquidGlassSwitch.useBackdrop) {
+            const aR = this.container.getBoundingClientRect();
+            const cl = (aR.width - trackWidth) / 2;
+            const ct = (aR.height - trackHeight) / 2;
+            this.cloneInner.style.width = `${aR.width}px`;
+            this.cloneInner.style.height = `${aR.height}px`;
+            this.cloneInner.style.transform =
+                `translate(${-(cl + tx)}px, ${-(ct + (trackHeight / 2 - thumbHeight / 2))}px)`;
+            this.cloneInner.style.setProperty('--lg-switch-track-color', `rgba(${r},${g},${b},${a})`);
+            this.cloneInner.style.setProperty('--lg-track-left', `${cl}px`);
+            this.cloneInner.style.setProperty('--lg-track-top', `${ct}px`);
+        }
+
+        const settled = this.spXr.isSettled() && this.spSc.isSettled() &&
+            this.spBo.isSettled() && this.spTc.isSettled() && this.spSr.isSettled();
+        this.rafId = settled ? null : requestAnimationFrame(() => this._loop());
+    }
+
+    // ── Pointer events ───────────────────────────────────────────────────────
+
+    private _bindEvents(): void {
+        const onDown = (clientX: number) => {
+            this.isPressed = true;
+            this.dragStartX = clientX;
+            this.thumbRatio = this.checked ? 1 : 0;
+            this.spSc.setTarget(0.9);
+            this.spBo.setTarget(0.1);
+            this.spSr.setTarget(0.9);
+            this._kick();
+        };
+
+        const onMove = (clientX: number) => {
+            if (!this.isPressed) return;
+            const {thumbTravel} = this.geo;
+            const base = this.checked ? 1 : 0;
+            const ratio = base + (clientX - this.dragStartX) / thumbTravel;
+            // Rubber-band: allow slight overshoot, then compress
+            const clamped = Math.min(1, Math.max(0, ratio));
+            const overshoot = ratio < 0 ? -ratio : ratio > 1 ? ratio - 1 : 0;
+            this.thumbRatio = clamped + (ratio < 0 ? 1 : -1) * overshoot / 22;
+            this.spXr.setTarget(this.thumbRatio);
+            this._kick();
+        };
+
+        const onUp = (clientX: number) => {
+            if (!this.isPressed) return;
+            this.isPressed = false;
+            // Snap: small movement = toggle, large movement = follow position
+            const wasDrag = Math.abs(clientX - this.dragStartX) >= 4;
+            this.checked = wasDrag ? this.thumbRatio > 0.5 : !this.checked;
+            this.spSc.setTarget(this.cfg.thumbHeight / this.cfg.thumbWidth);
+            this.spBo.setTarget(1);
+            this.spSr.setTarget(0.4);
+            this.cfg.onChange(this.checked);
+            this._kick();
+        };
+
+        // Thumb — primary drag target
+        this.thumb.addEventListener('mousedown', e => {
+            e.preventDefault();
+            e.stopPropagation();
+            onDown(e.clientX);
+        });
+        this.thumb.addEventListener('touchstart', e => {
+            e.preventDefault();
+            e.stopPropagation();
+            onDown(e.touches[0].clientX);
+        }, {passive: false});
+
+        window.addEventListener('mousemove', e => onMove(e.clientX));
+        window.addEventListener('touchmove', e => {
+            if (this.isPressed) {
+                e.stopPropagation();
+                onMove(e.touches[0].clientX);
+            }
+        }, {passive: false});
+        window.addEventListener('mouseup', e => onUp(e.clientX));
+        window.addEventListener('touchend', e => onUp(e.changedTouches?.[0]?.clientX ?? this.dragStartX));
+
+        // Track — click anywhere to toggle
+        this.track.addEventListener('click', e => {
+            if (e.target === this.track) {
+                this.checked = !this.checked;
+                this._kick();
+            }
+        });
+
+        window.addEventListener('resize', () => {
+            this._computeGeo();
+            this._kick();
+        });
+    }
+
+    // ── Public API ───────────────────────────────────────────────────────────
+
+    /** Programmatically set checked state (animates). */
+    setChecked(v: boolean): void {
+        this.checked = v;
+        this._kick();
+    }
+
+    /** Read current checked state. */
+    isChecked(): boolean {
+        return this.checked;
+    }
+
+    /** Tear down. */
+    destroy(): void {
+        if (this.rafId) cancelAnimationFrame(this.rafId);
+        this.filter?.svg.remove();
+        this.container.innerHTML = '';
+    }
+}
+
 /**
  * Main API for the Liquid Glass effect
  *
@@ -1037,9 +1722,9 @@ export class LiquidGlass {
     static isTracking = false;
     static isMobileTracking = false;
 
-    static _lx = -9999; // last mouse X
-    static _ly = -9999; // last mouse Y
-    static _raf: number | null = null; // animation frame ID
+    static _lx = -9999;
+    static _ly = -9999;
+    static _raf: number | null = null;
 
     /**
      * Inject base CSS (animations, etc.) if not already present
@@ -1194,6 +1879,50 @@ export class LiquidGlass {
     }
 
     /**
+     * Create a LiquidGlassSlider inside `container`.
+     *
+     * The slider shares the global filter cache so if multiple sliders
+     * happen to have identical dimensions and optics they reuse the same
+     * baked displacement map.
+     *
+     * @example
+     * const slider = LiquidGlass.createSlider('#my-container', {
+     *   value: 30,
+     *   onChange:  v => console.log('live:', v),
+     *   onCommit:  v => console.log('committed:', v),
+     * });
+     */
+    static createSlider(
+        container: string | HTMLElement,
+        options: SliderOptions = {}
+    ): LiquidGlassSlider {
+        const el = typeof container === 'string'
+            ? document.querySelector<HTMLElement>(container)!
+            : container;
+        return new LiquidGlassSlider(el, options, this.filterCache);
+    }
+
+    /**
+     * Create a LiquidGlassSwitch inside `container`.
+     *
+     * @example
+     * const toggle = LiquidGlass.createSwitch('#my-toggle', {
+     *   checked:  false,
+     *   colorOn:  [99, 102, 241],
+     *   onChange: v => console.log('switched:', v),
+     * });
+     */
+    static createSwitch(
+        container: string | HTMLElement,
+        options: SwitchOptions = {}
+    ): LiquidGlassSwitch {
+        const el = typeof container === 'string'
+            ? document.querySelector<HTMLElement>(container)!
+            : container;
+        return new LiquidGlassSwitch(el, options, this.filterCache);
+    }
+
+    /**
      * Add a ripple effect emanating from a click/tap point
      *
      * @param element Element to add ripple to
@@ -1240,8 +1969,8 @@ export class LiquidGlass {
 
         // 4. Execute dynamic Web Animation (No external CSS required)
         const animation = rip.animate([
-            { transform: 'scale(0)', opacity: startOp },
-            { transform: 'scale(1)', opacity: endOp }
+            {transform: 'scale(0)', opacity: startOp},
+            {transform: 'scale(1)', opacity: endOp}
         ], {
             duration: duration,
             easing: easing,
@@ -1251,4 +1980,5 @@ export class LiquidGlass {
         // 5. Memory cleanup
         animation.onfinish = () => rip.remove();
     }
+
 }

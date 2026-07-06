@@ -117,24 +117,30 @@
 
 <body>
 
-    <button class="my-glass-card">
-        Standard Rect
-    </button>
-    <button class=" my-glass-card--circle">
-        Standard Circle
-    </button>
-    <button class="my-glass-card--square">
-        Square Rect
-    </button>
+<button class="my-glass-card">
+    Standard Rect
+</button>
+<button class=" my-glass-card--circle" style="">
+    Standard Circle
+</button>
+<button class="my-glass-card--square">
+    Square Rect
+</button>
 
-    <div class="my-glass-card custom-blob"
-        data-lg-mask="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0nMzIwJyBoZWlnaHQ9JzI0MCcgdmlld0JveD0nMCAwIDMyMCAyNDAnIHhtbG5zPSdodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2Zyc+PHBhdGggZD0nTTQwLDQwIFExNjAsLTIwIDI4MCw0MCBUMjgwLDIwMCBRMTYwLDI2MCA0MCwyMDAgVDQwLDQwIFonIGZpbGw9J2JsYWNrJy8+PC9zdmc+">
-        <h2>Custom Blob</h2>
-        <p>My edges are calculated purely from the SVG mask's alpha channel.</p>
-    </div>
+<div id="my-container"></div>
+<div id="my-toggle"></div>
 
-    <script type="module">
-        import { LiquidGlass as liquidGlass, LiquidGlass } from './src/index.js';
+<!--<div class="my-glass-card custom-blob"
+     data-lg-mask="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0nMzIwJyBoZWlnaHQ9JzI0MCcgdmlld0JveD0nMCAwIDMyMCAyNDAnIHhtbG5zPSdodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2Zyc+PHBhdGggZD0nTTQwLDQwIFExNjAsLTIwIDI4MCw0MCBUMjgwLDIwMCBRMTYwLDI2MCA0MCwyMDAgVDQwLDQwIFonIGZpbGw9J2JsYWNrJy8+PC9zdmc+">
+    <h2>Custom Blob</h2>
+    <p>My edges are calculated purely from the SVG mask's alpha channel.</p>
+</div>-->
+
+<script type="module">
+    import {LiquidGlass as liquidGlass, LiquidGlass} from './src/index.js';
+
+    document.addEventListener('DOMContentLoaded', () => {
+
 
         LiquidGlass.init('.my-glass-card', {
             enableOrb: false,
@@ -145,7 +151,6 @@
         liquidGlass.init('.my-glass-card--square', {
             enableOrb: true,
         })
-
         document.querySelectorAll('.my-glass-card').forEach(card => {
             card.addEventListener('click', (e) => {
                 LiquidGlass.addRipple(card, e, {
@@ -155,7 +160,31 @@
                 });
             });
         });
-    </script>
+    });
+    // Slider
+    const slider = LiquidGlass.createSlider('#my-container', {
+        /*thumbWidth:30,
+        thumbHeight:20,
+        trackHeight:10,
+        trackWidth:100,*/
+
+        value:0,
+        colorOn: [99, 102, 241],
+        onChange: v => console.log('live:', v),
+        onCommit: v => console.log('committed:', v),
+    });
+    slider.setValue(50);   // programmatic
+    slider.getValue();     // read
+
+    // Switch
+    const toggle = LiquidGlass.createSwitch('#my-toggle', {
+        checked: false,
+        colorOn: [139, 92, 246],
+        onChange: v => console.log('switched:', v),
+    });
+    toggle.setChecked(true);
+    toggle.isChecked();
+</script>
 
 </body>
 
