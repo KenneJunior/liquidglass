@@ -1,15 +1,48 @@
 {
   "name": "liquidglass",
-  "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
+  "description": "Lightweight UI library built with TypeScript and Vite.",
   "type": "module",
+  "main": "dist/index.cjs.js",
+  "module": "dist/index.esm.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "keywords": [
+    "liquidglass",
+    "ui",
+    "components",
+    "typescript",
+    "vite",
+    "web",
+    "design-system"
+  ],
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "prepare": "npm run build",
+    "test": "echo \"No tests Available\" && exit 0"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/KenneJunior/liquidglass.git"
+  },
+  "author": "KenneJunior",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/KenneJunior/liquidglass/issues"
+  },
+  "homepage": "https://github.com/KenneJunior/liquidglass#readme",
   "devDependencies": {
     "typescript": "~6.0.2",
     "vite": "^8.1.1"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

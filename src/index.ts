@@ -1,4 +1,4 @@
-﻿/**
+/**
  * ============================================================
  * LIQUID GLASS LIBRARY (v4 - TypeScript Edition)
  * ============================================================
@@ -34,10 +34,10 @@
  * });
  */
 
-export { LiquidGlass } from './api.ts';
-export { LiquidGlassSlider } from './slider.ts';
-export { LiquidGlassSwitch } from './switch.ts';
-export { LiquidGlassSurface } from './surface.ts';
+export { LiquidGlass } from "./api/api.ts";
+export { LiquidGlassSlider } from "./components/slider.ts";
+export { LiquidGlassSwitch } from "./components/switch.ts";
+export { LiquidGlassSurface } from "./components/surface.ts";
 
-export { Spring, MathUtils } from './utils.ts';
-export { buildGlassFilterAsync } from './filters.ts';
+export { Spring, MathUtils } from "./utils/utils.ts";
+export { buildGlassFilterAsync } from "./components/filters.ts";
