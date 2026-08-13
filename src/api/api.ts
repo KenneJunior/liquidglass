@@ -217,17 +217,17 @@ export class LiquidGlass {
    *   enableOrb: true
    * });
    */
-  static init(
-    selector: string,
-    options: LiquidGlassOptions = {
-      backdrop: {
-        blur: undefined,
-        saturation: undefined,
-        brightness: undefined,
-        reducedMotion: undefined,
-      },
+  static init(selector: string, options?: LiquidGlassOptions): void;
+  static init(selectors: string[], options?: LiquidGlassOptions): void;
+  static init(selectorOrSelectors: string | string[], options: LiquidGlassOptions = {}) {
+    // support both single selector and array of selectors
+    if (Array.isArray(selectorOrSelectors)) {
+      selectorOrSelectors.forEach((sel) => this.init(sel, options));
+      return;
     }
-  ) {
+
+    const selector = selectorOrSelectors;
+
     this.injectBaseStyles();
     document.querySelectorAll<HTMLElement>(selector).forEach((el) => {
       if (!this.instances.has(el)) {

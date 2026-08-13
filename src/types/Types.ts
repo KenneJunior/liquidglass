@@ -10,7 +10,7 @@ export interface LiquidGlassOptions {
   /** Virtual glass thickness in pixels (affects displacement map). Default: 120 */
   glassThickness?: number;
 
-  backdrop: {
+  backdrop?: {
     /** Amount of background blur (stdDeviation for feGaussianBlur). Default: 0.6 */
     blur?: number;
 
