@@ -1,6 +1,6 @@
 {
   "name": "@kennejunior/liquidglass",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Lightweight UI library built with TypeScript and Vite.",
   "type": "module",
   "main": "dist/index.cjs",
