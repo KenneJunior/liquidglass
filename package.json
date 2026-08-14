@@ -1,5 +1,5 @@
 {
-  "name": "kenneliquidglass",
+  "name": "@kenne/liquidglass",
   "version": "1.0.3",
   "description": "Lightweight UI library built with TypeScript and Vite.",
   "type": "module",
@@ -16,7 +16,7 @@
     "dist"
   ],
   "keywords": [
-    "kenneliquidglass",
+    "@kenne/liquidglass",
     "liquidglass",
     "ui",
     "components",
@@ -26,6 +26,7 @@
     "design-system"
   ],
   "scripts": {
+
     "dev": "vite",
     "build": "tsc && vite build",
     "build:lib": "tsup src/index.ts --format cjs,esm --dts --out-dir dist --clean",

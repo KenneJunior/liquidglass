@@ -216,8 +216,23 @@ export class LiquidGlass {
    *   maxTilt: 12,
    *   enableOrb: true
    * });
+   *
    */
   static init(selector: string, options?: LiquidGlassOptions): void;
+  /**
+   * Initialize glass effects on matching elements
+   *
+   * @param selectors Array of CSS selectors for elements to enhance
+   * @param options Configuration options (merged with CSS variables)
+   *
+   * @example
+   * LiquidGlass.init(['.glass-card-1','glass-card-2','glass-card-3'], {
+   *   refractiveIndex: 1.8,
+   *   maxTilt: 12,
+   *   enableOrb: true
+   * });
+   *
+   */
   static init(selectors: string[], options?: LiquidGlassOptions): void;
   static init(selectorOrSelectors: string | string[], options: LiquidGlassOptions = {}) {
     // support both single selector and array of selectors

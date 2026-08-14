@@ -16,8 +16,9 @@
     "noEmit": false,
     "declaration": true,
     "declarationDir": "dist",
-    "emitDeclarationOnly": false,
+    "emitDeclarationOnly": true,
     "strict": true,
+    "rootDir": "./src",
 
     /* Linting */
     "noUnusedLocals": false,

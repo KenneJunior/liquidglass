@@ -159,7 +159,7 @@ The library injects its own `<svg>` filter and inner shell div. It does not modi
 Applies the full glass effect to every element matching a CSS selector. Each element gets its own `LiquidGlassSurface` instance which manages the filter, the spring loop, and pointer tracking independently.
 
 ```ts
-LiquidGlass.init(selector: string, options?: LiquidGlassOptions): void
+LiquidGlass.init(selector: string | string[], options?: LiquidGlassOptions): void
 ```
 
 ```js
