@@ -1,6 +1,6 @@
 {
-  "name": "@kenne/liquidglass",
-  "version": "1.0.4",
+  "name": "@kennejunior/liquidglass",
+  "version": "1.0.0",
   "description": "Lightweight UI library built with TypeScript and Vite.",
   "type": "module",
   "main": "dist/index.cjs",
@@ -16,7 +16,7 @@
     "dist"
   ],
   "keywords": [
-    "@kenne/liquidglass",
+    "@kennejunior/liquidglass",
     "liquidglass",
     "ui",
     "components",
@@ -59,6 +59,10 @@
   },
   "engines": {
     "node": ">=18"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/KenneJunior/liquidglass.git"
   },
   "publishConfig": {
     "access": "public"
