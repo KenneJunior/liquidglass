@@ -1311,6 +1311,7 @@
     <script type="module">
         import { LiquidGlass } from './src/index.js';
 
+
         // ═══════════════════════════════════════════════════════════════
         // STATE
         // ═══════════════════════════════════════════════════════════════
@@ -1385,6 +1386,7 @@
                 refractiveIndex: 2,
             });
 
+
             // Ripple
             document.querySelectorAll('.my-glass-card,.my-glass-card--circle,.my-glass-card--square')
                 .forEach(card => {
@@ -1394,6 +1396,10 @@
                             sizeMultiplier: rippleOpts.sizeMultiplier,
                             durationMs: rippleOpts.durationMs,
                         });
+                        LiquidGlass.addShatter(card, e, {
+                            edgeShimmer:true,
+                            hideOrigin:false
+                        })
                         log(`ripple on ${card.id || card.className.split(' ')[0]}`, 'live');
                     });
                 });

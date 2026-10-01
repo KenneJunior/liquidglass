@@ -22,3 +22,12 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+/src/api/api.js
+/src/components/filters.js
+/src/index.js
+/kenneliquidglass-1.0.2.tgz
+/src/components/slider.js
+/src/components/surface.js
+/src/components/switch.js
+/src/types/Types.js
+/src/utils/utils.js
