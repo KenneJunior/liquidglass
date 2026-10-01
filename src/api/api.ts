@@ -6,21 +6,22 @@
  * - Pointer event tracking (mouse/stylus follow)
  * - Device orientation tracking (mobile gyroscope)
  * - Ambient orb rendering
- * - Ripple effect creation
+ * - Ripple effects creation
  * - Factory methods for creating surfaces, sliders, and switches
  */
 
 import type {
   LiquidGlassOptions,
-  RippleOptions,
+  RippleOptions, ShatterOptions,
   SliderOptions,
   SwitchOptions,
-  FilterCacheResult,
 } from "../types/Types.ts";
 import { LiquidGlassSurface } from "../components/surface.ts";
 import { LiquidGlassSlider } from "../components/slider.ts";
 import { LiquidGlassSwitch } from "../components/switch.ts";
-import { MathUtils } from "../utils/utils.ts";
+import {ShatterEngine} from "../effects/ShaterEngine.ts";
+import {MathUtils} from "../core/Mathutils.ts";
+import {Spring} from "../core/Spring.ts";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // FEATURE OPTION TYPES
@@ -107,53 +108,9 @@ export interface GlowPulseInstance {
   destroy(): void;
 }
 
-/**
- * Options for LiquidGlass.addShatter()
- */
-export interface ShatterOptions {
-  /**
-   * Number of shards to break into. More shards = finer break,
-   * higher DOM cost. Default: 12
-   */
-  shardCount?: number;
-  /**
-   * Initial velocity multiplier for shard launch speed in pixels/s.
-   * Default: 400
-   */
-  velocity?: number;
-  /**
-   * Downward acceleration applied to each shard each frame,
-   * simulating gravity. Default: 980 (px/s²)
-   */
-  gravity?: number;
-  /**
-   * Spring damping on each shard's rotation. Lower = more spinning.
-   * Default: 8
-   */
-  spinDamping?: number;
-  /**
-   * Duration in ms before each shard begins fading out.
-   * Default: 400
-   */
-  fadeDelay?: number;
-  /**
-   * Duration of each shard's fade-out in ms.
-   * Default: 300
-   */
-  fadeDuration?: number;
-  /**
-   * Whether to hide the original element before shattering.
-   * Default: true
-   */
-  hideOrigin?: boolean;
-  /**
-   * Called once all shards have faded out and been removed from the DOM.
-   */
-  onComplete?: () => void;
-}
 
 /**
- * Main API for the Liquid Glass effect
+ * Main API for the Liquid Glass effects
  *
  * Static factory and event manager for initializing and controlling glass effects.
  * Handles:
@@ -161,7 +118,7 @@ export interface ShatterOptions {
  * - Pointer event tracking (mouse/stylus follow)
  * - Device orientation tracking (mobile gyroscope)
  * - Ambient orb rendering
- * - Ripple effect creation
+ * - Ripple effects creation
  * - Magnetic snap-to-zone interactions
  * - Animated specular glow pulse
  * - Physics-based glass shatter destruction
@@ -302,22 +259,22 @@ export class LiquidGlass {
         const rect = el.getBoundingClientRect();
         const M = 100; // detection margin in pixels
         const near =
-          this._lx > rect.left - M &&
-          this._lx < rect.right + M &&
-          this._ly > rect.top - M &&
-          this._ly < rect.bottom + M;
+            this._lx > rect.left - M &&
+            this._lx < rect.right + M &&
+            this._ly > rect.top - M &&
+            this._ly < rect.bottom + M;
 
         if (near) {
           // Normalize coordinates to -1..1 range relative to element center
           const nx = MathUtils.clamp(
-            (this._lx - (rect.left + rect.width / 2)) / (rect.width / 2),
-            -1,
-            1
+              (this._lx - (rect.left + rect.width / 2)) / (rect.width / 2),
+              -1,
+              1
           );
           const ny = MathUtils.clamp(
-            (this._ly - (rect.top + rect.height / 2)) / (rect.height / 2),
-            -1,
-            1
+              (this._ly - (rect.top + rect.height / 2)) / (rect.height / 2),
+              -1,
+              1
           );
           surface.aim(nx, ny);
         } else {
@@ -356,24 +313,24 @@ export class LiquidGlass {
 
   /**
    * Enable mobile device orientation support (gyroscope)
-   * Allows glass effect to respond to device tilt
+   * Allows glass effects to respond to device tilt
    */
   static enableMobileSupport() {
     window.addEventListener(
-      "deviceorientation",
-      (e: DeviceOrientationEvent) => {
-        if (!e.gamma || !e.beta) return;
-        // Normalize gamma (-90..90) and beta (-180..180) to -1..1
-        const nx = MathUtils.clamp(e.gamma / 45, -1, 1);
-        const ny = MathUtils.clamp(e.beta / 45, -1, 1);
+        "deviceorientation",
+        (e: DeviceOrientationEvent) => {
+          if (!e.gamma || !e.beta) return;
+          // Normalize gamma (-90..90) and beta (-180..180) to -1..1
+          const nx = MathUtils.clamp(e.gamma / 45, -1, 1);
+          const ny = MathUtils.clamp(e.beta / 45, -1, 1);
 
-        if (!this._raf) {
-          this._raf = requestAnimationFrame(() => {
-            this._raf = null;
-            this.instances.forEach((surface) => surface.aim(nx, ny));
-          });
+          if (!this._raf) {
+            this._raf = requestAnimationFrame(() => {
+              this._raf = null;
+              this.instances.forEach((surface) => surface.aim(nx, ny));
+            });
+          }
         }
-      }
     );
   }
 
@@ -392,13 +349,13 @@ export class LiquidGlass {
    * });
    */
   static createSlider(
-    container: string | HTMLElement,
-    options: SliderOptions = {}
+      container: string | HTMLElement,
+      options: SliderOptions = {}
   ): LiquidGlassSlider {
     const el =
-      typeof container === "string"
-        ? document.querySelector<HTMLElement>(container)!
-        : container;
+        typeof container === "string"
+            ? document.querySelector<HTMLElement>(container)!
+            : container;
     return new LiquidGlassSlider(el, options);
   }
 
@@ -413,75 +370,308 @@ export class LiquidGlass {
    * });
    */
   static createSwitch(
-    container: string | HTMLElement,
-    options: SwitchOptions
+      container: string | HTMLElement,
+      options: SwitchOptions
   ): LiquidGlassSwitch {
     const el =
-      typeof container === "string"
-        ? document.querySelector<HTMLElement>(container)!
-        : container;
+        typeof container === "string"
+            ? document.querySelector<HTMLElement>(container)!
+            : container;
     return new LiquidGlassSwitch(el, options);
   }
 
   /**
-   * Add a ripple effect emanating from a click/tap point
+   * Emits a physically layered ripple from a click/tap point.
    *
-   * @param element Element to add ripple to
-   * @param event Mouse or pointer event with clientX/Y
-   * @param options
+   * Three simultaneous layers produce the glass-quality feel:
+   *
+   *  1. **Origin flash** — a tight, bright circle at the exact impact point
+   *     that peaks at t=0 and vanishes in ~180ms. Simulates the moment of
+   *     impact before energy has propagated outward.
+   *
+   *  2. **Refraction ring** — a thin, high-opacity annulus that races ahead
+   *     of the fill wave. Models the leading edge of the pressure front where
+   *     the refractive index discontinuity is sharpest — the same physics that
+   *     produces the bright ring you see when a droplet hits still water.
+   *     Implemented as a `radial-gradient` with a sharp transparent centre so
+   *     the ring thins and fades as it expands.
+   *
+   *  3. **Fill wave** — the main expanding disc. Uses a two-stop gradient
+   *     (opaque centre → transparent edge) so energy density appears to
+   *     concentrate at the origin and dissipate outward — correct for a
+   *     pressure wave in a 2D medium where intensity ∝ 1/r.
+   *
+   *  4. **Chromatic aberration halo** (optional) — a fourth layer: two
+   *     concentric rings offset by ±1px in opposite colours (red/blue),
+   *     matching the per-channel displacement used in the glass filter.
+   *     Visible only at the wave front; negligible performance cost.
+   *
+   * All layers use `mix-blend-mode: screen` so they add light rather than
+   * painting over the glass surface content.
+   *
+   * Returns a Promise that resolves when all DOM nodes have been cleaned up,
+   * allowing callers to chain actions after the animation.
+   *
+   * @param element  Element to emit the ripple from
+   * @param event    Pointer or mouse event that triggered the ripple.
+   *                 Used for the origin position; the ripple always starts
+   *                 at the exact (clientX, clientY) of the event.
+   * @param options  Visual and timing parameters
+   * @returns        Promise resolving when the animation is complete
    *
    * @example
-   * element.addEventListener('click', (e) => {
-   *   LiquidGlass.addRipple(element, e, 'rgba(100,150,255,.5)');
+   * element.addEventListener('click', async e => {
+   *   await LiquidGlass.addRipple(element, e, {
+   *     color:       'rgba(120, 160, 255, 0.35)',
+   *     ringColor:   'rgba(200, 220, 255, 0.75)',
+   *     aberration:  true,
+   *     durationMs:  900,
+   *   });
+   *   console.log('ripple done');
    * });
    */
   static addRipple(
-    element: HTMLElement,
-    event: MouseEvent | PointerEvent,
-    options: RippleOptions = {}
-  ): void {
-    // 1. Establish strict defaults
-    const color = options.color ?? "rgba(255, 255, 255, 0.46)";
-    const sizeMultiplier = options.sizeMultiplier ?? 2;
-    const duration = options.durationMs ?? 1.2;
-    const easing = options.easing ?? "cubic-bezier(.16, 1, .3, 1)";
-    const startOp = options.startOpacity ?? 1;
-    const endOp = options.endOpacity ?? 0;
+      element:  HTMLElement,
+      event:    MouseEvent | PointerEvent,
+      options:  RippleOptions = {}
+  ): Promise<void> {
+    return new Promise<void>(resolve => {
 
-    // 2. Calculate geometry
-    const rect = element.getBoundingClientRect();
-    const size = Math.max(rect.width, rect.height) * sizeMultiplier;
+      // ── Resolve options ─────────────────────────────────────────────────
+      const color            = options.color            ?? "rgba(255, 255, 255, 0.28)";
+      const ringColor        = options.ringColor        ?? "rgba(255, 255, 255, 0.70)";
+      const originFlash      = options.originFlash      ?? true;
+      const originFlashColor = options.originFlashColor ?? "rgba(255, 255, 255, 0.92)";
+      const sizeMultiplier   = options.sizeMultiplier   ?? 2.8;
+      const durationMs       = options.durationMs       ?? 900;
+      const blendMode        = options.blendMode        ?? "screen";
+      const aberration       = options.aberration       ?? true;
+      const easing           = options.easing           ?? "cubic-bezier(0.16, 1, 0.3, 1)";
+      const startOp          = options.startOpacity     ?? 1;
+      const endOp            = options.endOpacity       ?? 0;
 
-    // 3. Construct DOM element
-    const rip = document.createElement("span");
-    Object.assign(rip.style, {
-      position: "absolute",
-      width: `${size}px`,
-      height: `${size}px`,
-      borderRadius: "50%",
-      left: `${event.clientX - rect.left - size / 2}px`,
-      top: `${event.clientY - rect.top - size / 2}px`,
-      background: `radial-gradient(circle, ${color} 0%, transparent 50%)`,
-      pointerEvents: "none",
-      zIndex: "0", // Ensure it sits behind text if the container is relative
-    });
+      // ── Geometry ─────────────────────────────────────────────────────────
+      const rect  = element.getBoundingClientRect();
+      const ox    = event.clientX - rect.left;   // origin X, element-local
+      const oy    = event.clientY - rect.top;    // origin Y, element-local
+      // Max radius needed to reach the farthest corner from the click point
+      const toCornerDist = Math.max(
+          Math.hypot(ox,          oy),
+          Math.hypot(rect.width - ox, oy),
+          Math.hypot(ox,          rect.height - oy),
+          Math.hypot(rect.width - ox, rect.height - oy)
+      );
+      const size  = toCornerDist * 2 * sizeMultiplier;
 
-    element.appendChild(rip);
+      // ── Shared layer styles ───────────────────────────────────────────────
+      // All layers are absolute, centred on the click point, circular,
+      // and use screen blend mode. Pointer-events disabled throughout.
+      const baseStyle = (diameter: number): Partial<CSSStyleDeclaration> => ({
+        position:      "absolute",
+        width:         `${diameter}px`,
+        height:        `${diameter}px`,
+        borderRadius:  "50%",
+        left:          `${ox - diameter / 2}px`,
+        top:           `${oy - diameter / 2}px`,
+        pointerEvents: "none",
+        mixBlendMode:  blendMode as any,
+        willChange:    "transform, opacity",
+      });
 
-    // 4. Execute dynamic Web Animation (No external CSS required)
-    const animation = rip.animate(
-      [
-        { transform: "scale(0)", opacity: startOp },
-        { transform: "scale(1)", opacity: endOp },
-      ],
-      {
-        duration: duration,
-        easing: easing,
-        fill: "forwards",
+      // ── Helper: create a layer, append it, and schedule cleanup ──────────
+      // Each layer manages its own lifetime via animation.onfinish.
+      // The shared `done` counter resolves the outer Promise once all
+      // layers have cleaned up.
+      const layerCount = 2 + (originFlash ? 1 : 0) + (aberration ? 1 : 0);
+      let   doneCount  = 0;
+
+      function finish() {
+        doneCount++;
+        if (doneCount >= layerCount) {
+          options.onComplete?.();
+          resolve();
+        }
       }
-    );
 
-    // 5. Memory cleanup
-    animation.onfinish = () => rip.remove();
+      function spawnLayer(
+          el:       HTMLElement,
+          keyframes: Keyframe[],
+          timing:   KeyframeAnimationOptions
+      ): void {
+        element.appendChild(el);
+        const anim = el.animate(keyframes, timing);
+        anim.onfinish = () => { el.remove(); finish(); };
+      }
+
+      // ── Layer 1 — Origin flash ────────────────────────────────────────────
+      // Tight, bright burst at the exact click point. Peaks instantly (t=0),
+      // vanishes fast so it doesn't compete with the expanding wave.
+      if (originFlash) {
+        const flashSize = Math.max(28, Math.min(rect.width, rect.height) * 0.18);
+        const flash     = document.createElement("div");
+        Object.assign(flash.style, {
+          ...baseStyle(flashSize),
+          background: `radial-gradient(circle,
+            ${originFlashColor}  0%,
+            rgba(255,255,255,0.28) 45%,
+            transparent 70%
+          )`,
+          zIndex: "4",
+        });
+        spawnLayer(flash, [
+          { transform: "scale(0)",   opacity: 1    },
+          { transform: "scale(1.8)", opacity: 0.65, offset: 0.25 },
+          { transform: "scale(3.2)", opacity: 0    },
+        ], {
+          duration: durationMs * 0.28,
+          easing:   "cubic-bezier(0.0, 0.0, 0.2, 1)",
+          fill:     "forwards",
+        });
+      }
+
+      // ── Layer 2 — Refraction ring (leading edge) ──────────────────────────
+      // A thin annulus that sprints ahead of the fill wave. The gradient has
+      // a transparent centre and transparent exterior so only the ring itself
+      // is visible — it thins and dims as it expands, correctly modelling
+      // a spreading pressure wave losing intensity with 1/r.
+      //
+      // The ring's inner radius is 55% and outer is 72% of the total disc.
+      // As scale increases the ring itself gets thinner in screen pixels,
+      // which is physically correct — the wave front is thin relative to the
+      // total expanded area at large radii.
+      const ring = document.createElement("div");
+      Object.assign(ring.style, {
+        ...baseStyle(size),
+        background: `radial-gradient(circle,
+          transparent           0%,
+          transparent           48%,
+          rgba(255,255,255,0.04) 52%,
+          ${ringColor}           60%,
+          rgba(255,255,255,0.12) 66%,
+          transparent           72%,
+          transparent           100%
+        )`,
+        zIndex: "3",
+      });
+      spawnLayer(ring, [
+        { transform: `scale(0)`,    opacity: startOp  },
+        { transform: `scale(0.55)`, opacity: 1,        offset: 0.12 },
+        { transform: `scale(1)`,    opacity: endOp    },
+      ], {
+        duration: durationMs,
+        easing,
+        fill: "forwards",
+      });
+
+      // ── Layer 3 — Fill wave ───────────────────────────────────────────────
+      // The main expanding disc. Gradient is denser at centre (0%) and fully
+      // transparent at 65% — this concentrates energy at the origin and
+      // produces a natural falloff matching 1/r² intensity decay.
+      // The animation uses two phases: fast initial expand (0→60%) then
+      // deceleration to full size, matching how pressure waves slow as they
+      // spread into a larger area.
+      const fill = document.createElement("div");
+      Object.assign(fill.style, {
+        ...baseStyle(size),
+        background: `radial-gradient(circle,
+          ${color}              0%,
+          rgba(255,255,255,0.06) 35%,
+          rgba(255,255,255,0.02) 55%,
+          transparent           65%
+        )`,
+        zIndex: "2",
+      });
+      spawnLayer(fill, [
+        { transform: `scale(0)`,   opacity: startOp },
+        // Fast burst to 60% — energy is highest near the origin
+        { transform: `scale(0.6)`, opacity: startOp * 0.85, offset: 0.22 },
+        // Decelerate — matches wave front losing energy as area grows
+        { transform: `scale(1)`,   opacity: endOp           },
+      ], {
+        duration: durationMs * 1.1,   // slightly longer than ring so fill lingers
+        easing:   "cubic-bezier(0.22, 1, 0.36, 1)",
+        fill: "forwards",
+      });
+
+      // ── Layer 4 — Chromatic aberration halo ──────────────────────────────
+      // Two offset rings in complementary colours (red leads, blue trails)
+      // matching the per-channel R/B offset in the SVG glass filter.
+      // The scale values are intentionally close to 1 so the rings appear
+      // only at the very edge of the expanded wave — they're a finishing
+      // detail, not a dominant feature.
+      if (aberration) {
+        const aber = document.createElement("div");
+        Object.assign(aber.style, {
+          ...baseStyle(size),
+          background: `radial-gradient(circle,
+            transparent                    0%,
+            transparent                    60%,
+            rgba(255, 60,  60,  0.14)      67%,
+            transparent                    71%,
+            transparent                    73%,
+            rgba(60,  80,  255, 0.12)      78%,
+            transparent                    83%
+          )`,
+          zIndex: "1",
+        });
+        spawnLayer(aber, [
+          { transform: `scale(0)`,    opacity: 0 },
+          { transform: `scale(0.55)`, opacity: 0,              offset: 0.18 },
+          { transform: `scale(0.82)`, opacity: startOp * 0.6,  offset: 0.55 },
+          { transform: `scale(1)`,    opacity: 0 },
+        ], {
+          duration: durationMs,
+          easing:   "cubic-bezier(0.2, 1, 0.4, 1)",
+          fill: "forwards",
+        });
+      }
+
+    });
+  }
+
+  /**
+   * Shatters a glass element into physics-driven shards.
+   *
+   * The fracture pattern is generated via a seeded Voronoi tessellation:
+   * seed points are scattered over the element, then each point's cell
+   * boundary is found by ray-casting in 24 directions and recording where
+   * the ray crosses into a neighbour's territory. The resulting polygons
+   * are applied as `clip-path` values so each shard shows the correct
+   * slice of the element's visual.
+   *
+   * Each shard is animated by two `Spring` instances (X and Y translation)
+   * and one rotation spring. Gravity accumulates on the Y velocity each
+   * frame. When all springs settle the shards fade staggered and are removed.
+   *
+   * When `scattered: false` the shards stay near their origin — they tilt
+   * and scale down slightly before fading, producing a "crumble" effects.
+   *
+   * @param element  Element to shatter, or a CSS selector string
+   * @param event    The pointer/mouse event that triggered the shatter
+   *                 (used to derive the impact origin when `options.origin`
+   *                 is not set). Pass `null` to use the element centre.
+   * @param options  Tuning parameters — see {@link ShatterOptions}
+   * @returns        Promise that resolves when all shards have been removed
+   *
+   * @example
+   * // Scattered shatter on click
+   * btn.addEventListener('click', async e => {
+   *   await LiquidGlass.addShatter(btn, e, { shardCount: 14, velocity: 520 });
+   *   btn.remove();
+   * });
+   *
+   * @example
+   * // In-place crumble, no scatter
+   * LiquidGlass.addShatter('#card', null, { scattered: false, shardCount: 18 });
+   */
+  static async addShatter(
+      element: string | HTMLElement,
+      event: MouseEvent | PointerEvent | null = null,
+      options: ShatterOptions = {}
+  ): Promise<void> {
+    const el = typeof element === 'string' ? document.querySelector<HTMLElement>(element) : element;
+    if (!el) return;
+
+    return ShatterEngine.shatter(el, event, options);
   }
 }

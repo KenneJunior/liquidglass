@@ -1,5 +1,5 @@
 /**
- * SVG filter builder for the glass effect
+ * SVG filter builder for the glass effects
  *
  * Contains:
  * - GlassFilterBuilder: Class for building and caching SVG filters with displacement maps
@@ -7,7 +7,8 @@
  */
 
 import type { LiquidGlassOptions, FilterCacheResult } from "../types/Types.ts";
-import { MathUtils } from "../utils/utils.ts";
+
+import {MathUtils} from "../core/Mathutils.ts";
 
 /**
  * Manages creation and caching of SVG glass filters.
@@ -52,7 +53,7 @@ export class GlassFilterBuilder {
   }
 
   /**
-   * Build an SVG filter for the glass effect
+   * Build an SVG filter for the glass effects
    *
    * Asynchronously creates a complete SVG filter with:
    * 1. Gaussian blur for soft input
