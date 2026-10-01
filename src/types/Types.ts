@@ -38,7 +38,7 @@ export interface LiquidGlassOptions {
   /** Respect system prefers-reduced-motion setting. Default: false */
   reducedMotion?: boolean;
 
-  /** Enable the ambient orb effect following the pointer. Default: true */
+  /** Enable the ambient orb effects following the pointer. Default: true */
   enableOrb?: boolean;
 
   /** Color of the orb as an rgba() string. Default: 'rgba(120,130,255,.13)' */
@@ -76,20 +76,83 @@ export interface FilterCacheResult {
   svg: SVGSVGElement;
 }
 
+
 export interface RippleOptions {
-  /** The color of the ripple gradient. */
+  /**
+   * Colour of the main radial fill expanding from the origin.
+   * Accepts any CSS colour string.
+   * Default: 'rgba(255, 255, 255, 0.28)'
+   */
   color?: string;
-  /** How large the ripple grows relative to the element's size. Default: 4 */
+
+  /**
+   * Colour of the bright refraction ring that races ahead of the fill.
+   * This is the "edge of the pressure wave" — should be lighter/more opaque
+   * than `color`. Default: 'rgba(255, 255, 255, 0.70)'
+   */
+  ringColor?: string;
+
+  /**
+   * Whether to show a sharp specular flash at the exact click point
+   * at t=0, simulating the impact moment before the wave expands.
+   * Default: true
+   */
+  originFlash?: boolean;
+
+  /**
+   * Colour of the origin flash. Default: 'rgba(255, 255, 255, 0.90)'
+   */
+  originFlashColor?: string;
+
+  /**
+   * How large the ripple grows relative to the element's longest dimension.
+   * 2.0 = fills the element exactly, 3.0 = overflows the edges.
+   * Default: 2.8
+   */
   sizeMultiplier?: number;
-  /** Animation duration in milliseconds. Default: 4000 */
+
+  /**
+   * Total animation duration in milliseconds. Default: 900
+   */
   durationMs?: number;
-  /** CSS easing function. Default: 'cubic-bezier(.16,1,.3,1)' */
+
+  /**
+   * CSS mix-blend-mode applied to the ripple layer.
+   * 'screen' adds light — correct for glass. 'normal' composites flatly.
+   * Default: 'screen'
+   */
+  blendMode?: string;
+
+  /**
+   * Whether to render a thin chromatic aberration ring just outside
+   * the main wave front — a faint red/blue split matching the library's
+   * glass surfaces. Default: true
+   */
+  aberration?: boolean;
+
+  /**
+   * Easing function for the expand animation.
+   * Default: 'cubic-bezier(0.16, 1, 0.3, 1)'
+   */
   easing?: string;
-  /** Starting opacity of the ripple. Default: 1 */
+
+  /**
+   * Starting opacity of the ripple fill. Default: 1
+   */
   startOpacity?: number;
-  /** Ending opacity of the ripple. Default: 0 */
+
+  /**
+   * Ending opacity of the ripple fill. Default: 0
+   */
   endOpacity?: number;
+
+  /**
+   * Called when the animation fully completes and all DOM nodes
+   * have been cleaned up.
+   */
+  onComplete?: () => void;
 }
+
 
 /**
  * Configuration for LiquidGlassSlider.
@@ -209,7 +272,7 @@ export interface SwitchOptions {
    */
   colorOff: [number, number, number, number];
   /**
-   * [R, G, B, A] for the ON track tint.
+   * [R, G, B, A] for the ON track tint rendered at variable alpha.
    * Default: [139, 92, 246, 0.5]
    */
   colorOn: [number, number, number, number];
@@ -237,4 +300,117 @@ export interface SwitchOptions {
   // ── Callbacks ────────────────────────────────────────────────────────────
   /** Fired when the switch commits to a new checked state on release. */
   onChange: (checked: boolean) => void;
+}
+
+// ---------- Effect------------------//
+/**
+ * Options for LiquidGlass.addShatter()
+ */
+export interface ShatterOptions {
+  /**
+   * Number of shards to break the element into.
+   * More shards = finer, more intricate fracture pattern.
+   * Diminishing returns above ~20; DOM cost scales linearly.
+   * Default: 12
+   */
+  shardCount?: number;
+
+  /**
+   * Controls whether the shards fly outward (scattered) or
+   * crumble in-place (not scattered).
+   *
+   * - `true`  (default) — each shard launches with a velocity vector
+   *   pointing away from the impact point, decelerates under damping,
+   *   and drifts downward under gravity. Ideal for dramatic destruction.
+   *
+   * - `false` — shards stay roughly where they are. They rotate slightly,
+   *   scale down a fraction, then fade. Ideal for a subtle "crumble"
+   *   effects where you don't want shards leaving the element's footprint.
+   *
+   * Default: true
+   */
+  scattered?: boolean;
+
+  /**
+   * Initial launch speed in px/s for each shard (scattered mode only).
+   * Each shard gets a randomised fraction of this value so they don't
+   * all travel the same distance. Default: 480
+   */
+  velocity?: number;
+
+  /**
+   * Downward acceleration in px/s² (scattered mode only).
+   * 0 = no gravity, shards fly in straight lines.
+   * Default: 900
+   */
+  gravity?: number;
+
+  /**
+   * Spring damping applied to each shard's translation springs.
+   * Higher = shards decelerate faster, less overshoot.
+   * Default: 14
+   */
+  damping?: number;
+
+  /**
+   * Maximum rotation applied to each shard in degrees.
+   * Each shard gets a random value in [-spinMax, +spinMax].
+   * Default: 55
+   */
+  spinMax?: number;
+
+  /**
+   * Point of impact (relative to the element's top-left corner)
+   * from which the fracture pattern radiates and shards launch.
+   * If omitted, defaults to the element's centre.
+   * @example { x: 20, y: 30 }  // near top-left corner
+   */
+  origin?: { x: number; y: number };
+
+  /**
+   * Duration in ms each shard waits after the physics animation
+   * settles before beginning its fade-out.
+   * Staggered per-shard by +0..30ms so they don't all vanish at once.
+   * Default: 320
+   */
+  fadeDelay?: number;
+
+  /**
+   * Duration of each shard's opacity fade-out in ms. Default: 380
+   */
+  fadeDuration?: number;
+
+  /**
+   * Whether to paint a refraction-edge shimmer on each shard's
+   * cut edges, simulating the way broken glass catches light.
+   * Implemented as a thin inset box-shadow on each shard div.
+   * Default: true
+   */
+  edgeShimmer?: boolean;
+
+  /**
+   * CSS colour of the edge shimmer. Default: 'rgba(255,255,255,0.55)'
+   */
+  edgeShimmerColor?: string;
+
+  /**
+   * Whether to hide the original element immediately before shattering.
+   * Set to false if you want to handle element removal yourself.
+   * Default: true
+   */
+  hideOrigin?: boolean;
+
+  /**
+   * Easing function for the physics animation (CSS easing string).
+   * Applied to the Web Animations API keyframe, not spring-driven motion.
+   * The spring drives position; this easing is applied to the CSS filter
+   * brightness pulse that flashes on impact.
+   * Default: 'cubic-bezier(0.16, 1, 0.3, 1)'
+   */
+  easing?: string;
+
+  /**
+   * Callback fired once all shards have faded out and been removed.
+   */
+  onComplete?: () => void;
 }
