@@ -1,7 +1,7 @@
 /**
  * Per-element glass surface class
  *
- * Manages all aspects of a glass effect on one DOM element:
+ * Manages all aspects of a glass effects on one DOM element:
  * - Animation state (spring-based physics)
  * - SVG filter attachment and updates
  * - Resize observation and recomputation
@@ -10,13 +10,14 @@
  */
 
 import type { LiquidGlassOptions, FilterCacheResult } from "../types/Types.ts";
-import { Spring, MathUtils } from "../utils/utils.ts";
 import { buildGlassFilterAsync } from "./filters.ts";
+import {MathUtils} from "../core/Mathutils.ts";
+import {Spring} from "../core/Spring.ts";
 
 /**
  * A single glass surface instance
  *
- * Manages all aspects of a glass effect on one DOM element:
+ * Manages all aspects of a glass effects on one DOM element:
  * - Animation state (spring-based physics)
  * - SVG filter attachment and updates
  * - Resize observation and recomputation
@@ -55,7 +56,7 @@ export class LiquidGlassSurface {
 
   /**
    * Create and initialize a glass surface on an element
-   * @param el DOM element to apply effect to
+   * @param el DOM element to apply effects to
    * @param jsOptions Configuration options (will be merged with CSS variables)
    */
   constructor(
@@ -239,7 +240,7 @@ export class LiquidGlassSurface {
   }
 
   /**
-   * Aim the glass effect toward a point
+   * Aim the glass effects toward a point
    *
    * Sets spring targets for 3D tilt, shadow, and refraction intensity.
    * Normalized coordinates: (-1, -1) = top-left, (1, 1) = bottom-right
@@ -298,7 +299,7 @@ export class LiquidGlassSurface {
   }
 
   /**
-   * Reset the glass effect to rest position
+   * Reset the glass effects to rest position
    * Animate back to neutral tilt, default shadow, and normal refraction
    */
   rest() {

@@ -3,7 +3,7 @@
  * LIQUID GLASS LIBRARY (v4 - TypeScript Edition)
  * ============================================================
  *
- * A high-performance glass morphism (glassmorphism) effect library that uses SVG filters
+ * A high-performance glass morphism (glassmorphism) effects library that uses SVG filters
  * to create realistic refractive glass surfaces with physics-based animations.
  *
  * Features:
@@ -13,22 +13,22 @@
  * - GPU-accelerated 3D transforms and backdrop filters
  * - Mobile device orientation support for gyroscope-based interactions
  * - Reduced motion preference detection for accessibility
- * - Optional ripple effect with customizable appearance
+ * - Optional ripple effects with customizable appearance
  * - CSS variable configuration for runtime customization
  * - Filter caching for improved performance with multiple elements
  *
  * @example
  * // Initialize with default settings
- * LiquidGlass.init('.glass-effect');
+ * LiquidGlass.init('.glass-effects');
  *
  * // Initialize with custom options
- * LiquidGlass.init('.glass-effect', {
+ * LiquidGlass.init('.glass-effects', {
  *   refractiveIndex: 1.8,
  *   glassThickness: 150,
  *   maxTilt: 10
  * });
  *
- * // Add a ripple effect on click
+ * // Add a ripple effects on click
  * element.addEventListener('click', (e) => {
  *   LiquidGlass.addRipple(element, e);
  * });
@@ -39,5 +39,6 @@ export { LiquidGlassSlider } from "./components/slider.ts";
 export { LiquidGlassSwitch } from "./components/switch.ts";
 export { LiquidGlassSurface } from "./components/surface.ts";
 
-export { Spring, MathUtils } from "./utils/utils.ts";
 export { buildGlassFilterAsync } from "./components/filters.ts";
+export {MathUtils} from "./core/Mathutils.ts";
+export {Spring} from "./core/Spring.ts";

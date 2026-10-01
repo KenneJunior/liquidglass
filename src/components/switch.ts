@@ -9,8 +9,8 @@ import type {
   FilterCacheResult,
   LiquidGlassOptions,
 } from "../types/Types.ts";
-import { Spring } from "../utils/utils.ts";
 import { buildGlassFilterAsync } from "./filters.ts";
+import {Spring} from "../core/Spring.ts";
 
 /**
  * A physics-driven glass toggle switch.
